@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "alphainspect"
+authors = [
+    { name = "wukan", email = "wu-kan@163.com" },
+]
+description = "factor performance visualization"
+readme = "README.md"
+requires-python = ">=3.8"
+keywords = ["quant", "alpha", "performance", "visualization"]
+license = { file = "LICENSE" }
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python"
+]
+dependencies = [
+    'pandas',
+    'polars',
+    'matplotlib',
+    'numba',
+    'seaborn',
+    'statsmodels',
+    'ipykernel',
+    'nbconvert',
+]
+dynamic = ["version"]
+
+[tool.setuptools]
+packages = [
+    "alphainspect",
+]
+
+[tool.setuptools.dynamic]
+version = { attr = "alphainspect._version.__version__" }

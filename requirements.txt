@@ -1,0 +1,8 @@
+pandas
+polars
+matplotlib
+numba
+seaborn
+statsmodels
+ipykernel
+nbconvert
