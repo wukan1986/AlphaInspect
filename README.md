@@ -20,7 +20,7 @@ pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --upgrade alphainspect  
     4. 推荐大家使用`expr_codegen`和`polars_ta`等项目
 2. 运行`examples/demo1.py`示例弹出简易图表
 3. 运行`examples/demo2.py`示例弹出完整图表
-4. 运行`examples/demo3.py`示例输出HTML网页报表
+4. 运行`examples/demo3.py`示例多进程并行输出HTML网页报表
 
 ![2x2](docs/img/2x2.png)
 
