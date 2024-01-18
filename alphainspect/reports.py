@@ -63,7 +63,7 @@ def ipynb_to_html(template: str, output: str = None,
         cmds = [f'export {k}={v}' for k, v in kwargs.items()] + [command]
         # commands = ' ; '.join(cmds)
 
-    commands = ' && '.join(cmds)
+    commands = '&&'.join(cmds)
 
     # print('environ:', kwargs)
     # print('command:', command)
