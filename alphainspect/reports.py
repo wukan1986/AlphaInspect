@@ -6,7 +6,7 @@ import polars as pl
 from matplotlib import pyplot as plt
 
 from alphainspect.ic import calc_ic, plot_ic_ts, plot_ic_hist, plot_ic_heatmap
-from alphainspect.portfolio import calc_return_by_quantile, calc_cum_return_by_quantile, plot_quantile_portfolio
+from alphainspect.portfolio import calc_cum_return_by_quantile, plot_quantile_portfolio
 from alphainspect.turnover import calc_auto_correlation, calc_quantile_turnover, plot_factor_auto_correlation, plot_turnover_quantile
 
 
@@ -79,11 +79,9 @@ def ipynb_to_html(template: str, output: str = None,
 def create_2x2_sheet(df_pl: pl.DataFrame,
                      factor: str,
                      forward_return: str, fwd_ret_1: str,
-                     quantiles: int = 10,
                      *,
                      period: int = 5,
-                     axvlines: Sequence[str] = (),
-                     date: str = 'date', asset: str = 'asset') -> None:
+                     axvlines: Sequence[str] = ()) -> None:
     """画2*2的图表。含IC时序、IC直方图、IC热力图、累积收益图
 
     Parameters
@@ -94,39 +92,32 @@ def create_2x2_sheet(df_pl: pl.DataFrame,
         用于记算IC的远期收益率
     fwd_ret_1:str
         用于记算累计收益的1期远期收益率
-    quantiles:str
-        分层数，默认10层
     period:int
         累计收益时持仓天数与资金份数
     axvlines
-    date
-    asset
 
     """
     fig, axes = plt.subplots(2, 2, figsize=(12, 9))
 
     # 画IC信息
-    df_ic = calc_ic(df_pl, factor, [forward_return], date=date)
-    plot_ic_ts(df_ic, forward_return, date=date, axvlines=axvlines, ax=axes[0, 0])
+    df_ic = calc_ic(df_pl, factor, [forward_return])
+    plot_ic_ts(df_ic, forward_return, axvlines=axvlines, ax=axes[0, 0])
     plot_ic_hist(df_ic, forward_return, ax=axes[0, 1])
-    plot_ic_heatmap(df_ic, forward_return, date=date, ax=axes[1, 0])
+    plot_ic_heatmap(df_ic, forward_return, ax=axes[1, 0])
 
     # 画累计收益
-    df_ret = calc_return_by_quantile(df_pl, factor, fwd_ret_1, quantiles, date=date, asset=asset)
-    df_cum_ret = calc_cum_return_by_quantile(df_ret, fwd_ret_1, quantiles, period, date=date, asset=asset)
+    df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period)
     plot_quantile_portfolio(df_cum_ret, fwd_ret_1, period, axvlines=axvlines, ax=axes[1, 1])
 
 
 def create_3x2_sheet(df_pl: pl.DataFrame,
                      factor: str,
                      forward_return: str, fwd_ret_1: str,
-                     quantiles: int = 10,
                      *,
                      period: int = 5,
                      quantile: int = 9,
                      periods: Sequence[int] = (1, 5, 10, 20),
-                     axvlines: Sequence[str] = (),
-                     date: str = 'date', asset: str = 'asset') -> None:
+                     axvlines: Sequence[str] = ()) -> None:
     """画2*3图
 
     Parameters
@@ -137,8 +128,6 @@ def create_3x2_sheet(df_pl: pl.DataFrame,
         用于记算IC的远期收益率
     fwd_ret_1:str
         用于记算累计收益的1期远期收益率
-    quantiles:str
-        分层数，默认10层
     period: int
         累计收益时持仓天数与资金份数
     quantile:int
@@ -146,25 +135,22 @@ def create_3x2_sheet(df_pl: pl.DataFrame,
     periods:
         换手率，多期比较
     axvlines
-    date
-    asset
 
     """
     fig, axes = plt.subplots(3, 2, figsize=(12, 14))
 
     # 画IC信息
-    df_ic = calc_ic(df_pl, factor, [forward_return], date=date)
-    plot_ic_ts(df_ic, forward_return, date=date, axvlines=axvlines, ax=axes[0, 0])
+    df_ic = calc_ic(df_pl, factor, [forward_return])
+    plot_ic_ts(df_ic, forward_return, axvlines=axvlines, ax=axes[0, 0])
     plot_ic_hist(df_ic, forward_return, ax=axes[0, 1])
-    plot_ic_heatmap(df_ic, forward_return, date=date, ax=axes[1, 0])
+    plot_ic_heatmap(df_ic, forward_return, ax=axes[1, 0])
 
     # 画净值曲线
-    df_ret = calc_return_by_quantile(df_pl, factor, fwd_ret_1, quantiles, date=date, asset=asset)
-    df_cum_ret = calc_cum_return_by_quantile(df_ret, fwd_ret_1, quantiles, period, date=date, asset=asset)
+    df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period)
     plot_quantile_portfolio(df_cum_ret, fwd_ret_1, period, axvlines=axvlines, ax=axes[1, 1])
 
     # 画换手率
-    df_auto_corr = calc_auto_correlation(df_pl, factor, periods=periods, date=date)
-    df_turnover = calc_quantile_turnover(df_pl, factor, quantiles=quantiles, periods=periods)
-    plot_factor_auto_correlation(df_auto_corr, axvlines=axvlines, date=date, ax=axes[2, 0])
-    plot_turnover_quantile(df_turnover, quantile=quantile, periods=periods, axvlines=axvlines, date=date, ax=axes[2, 1])
+    df_auto_corr = calc_auto_correlation(df_pl, factor, periods=periods)
+    df_turnover = calc_quantile_turnover(df_pl, periods=periods)
+    plot_factor_auto_correlation(df_auto_corr, axvlines=axvlines, ax=axes[2, 0])
+    plot_turnover_quantile(df_turnover, quantile=quantile, periods=periods, axvlines=axvlines, ax=axes[2, 1])

@@ -3,46 +3,19 @@ import polars as pl
 import seaborn as sns
 from matplotlib import pyplot as plt
 
-from alphainspect.utils import cumulative_returns, cs_bucket
+from alphainspect.utils import cumulative_returns
 
 
-def calc_return_by_quantile(df_pl: pl.DataFrame, factor: str, fwd_ret_1: str, quantiles: int = 10,
-                            *,
-                            date: str = 'date', asset: str = 'asset') -> pl.DataFrame:
-    """收益率按因子分组
-
-    Notes
-    -----
-    结果用来计算累积收益率，所以这里得传1期简单收益率
-
-    Examples
-    --------
-    >>> calc_return_by_quantile(df_pl, 'GP_0000', 'RETURN_OO_1'])
-    """
-
-    def _func_cs(df: pl.DataFrame):
-        return df.select([
-            date,
-            asset,
-            # 换名了，使用得用新名称
-            cs_bucket(pl.col(factor), quantiles).alias('factor_quantile'),
-            fwd_ret_1,
-        ])
-
-    return df_pl.group_by(by=date).map_groups(_func_cs)
-
-
-def calc_cum_return_by_quantile(df_pl: pl.DataFrame, fwd_ret_1: str, quantiles: int = 10, period: int = 5,
-                                *,
-                                date='date', asset='asset') -> pd.DataFrame:
-    df_pd = df_pl.to_pandas().set_index([date, asset])
+def calc_cum_return_by_quantile(df_pl: pl.DataFrame, fwd_ret_1: str, period: int = 5) -> pd.DataFrame:
+    df_pd = df_pl.to_pandas().set_index(['date', 'asset'])
     rr = df_pd[fwd_ret_1].unstack()  # 1日收益率
+    q_max = df_pd['factor_quantile'].max()
     pp = df_pd['factor_quantile'].unstack()  # 信号仓位
 
     out = pd.DataFrame(index=rr.index)
     rr = rr.to_numpy()
     pp = pp.to_numpy()
-    for i in range(quantiles):
+    for i in range(int(q_max) + 1):
         out[f'G{i}'] = cumulative_returns(rr, pp == i, period=period, is_mean=True)
     return out
 
@@ -74,15 +47,12 @@ def plot_portfolio_heatmap(df_pd: pd.DataFrame,
 
 
 def create_portfolio_sheet(df_pl: pl.DataFrame,
-                           factor: str, fwd_ret_1: str,
-                           quantiles: int = 10,
+                           fwd_ret_1: str,
                            period=5,
                            *,
                            groups=('G0', 'G9'),
-                           axvlines=(),
-                           date: str = 'date', asset: str = 'asset') -> None:
-    df_ret = calc_return_by_quantile(df_pl, factor, fwd_ret_1, quantiles, date=date, asset=asset)
-    df_cum_ret = calc_cum_return_by_quantile(df_ret, fwd_ret_1, quantiles, period, date=date, asset=asset)
+                           axvlines=()) -> None:
+    df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period)
 
     fix, axes = plt.subplots(2, 1, figsize=(12, 9))
     plot_quantile_portfolio(df_cum_ret, fwd_ret_1, period, axvlines=axvlines, ax=axes[0])

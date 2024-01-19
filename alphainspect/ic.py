@@ -9,9 +9,7 @@ from statsmodels import api as sm
 from alphainspect.utils import rank_ic
 
 
-def calc_ic(df_pl: pl.DataFrame, factor: str, forward_returns: Sequence[str],
-            *,
-            date: str = 'date') -> pl.DataFrame:
+def calc_ic(df_pl: pl.DataFrame, factor: str, forward_returns: Sequence[str]) -> pl.DataFrame:
     """计算一个因子与多个标签的IC
 
     Parameters
@@ -21,8 +19,6 @@ def calc_ic(df_pl: pl.DataFrame, factor: str, forward_returns: Sequence[str],
         因子
     forward_returns:str
         标签列表
-    date:str
-        日期
 
     Examples
     --------
@@ -30,25 +26,25 @@ def calc_ic(df_pl: pl.DataFrame, factor: str, forward_returns: Sequence[str],
     >>> calc_ic(df_pl, 'SMA_020', ['RETURN_OO_1', 'RETURN_OO_2', 'RETURN_CC_1'])
 
     """
-    return df_pl.group_by(by=[date]).agg(
+    return df_pl.group_by(by=['date']).agg(
         # 这里没有换名，名字将与forward_returns对应
         [rank_ic(x, factor) for x in forward_returns]
-    ).sort(date)
+    ).sort('date')
 
 
 def plot_ic_ts(df_pl: pl.DataFrame, col: str,
                *,
-               date: str = 'date', axvlines=(), ax=None) -> None:
+               axvlines=(), ax=None) -> None:
     """IC时序图
 
     Examples
     --------
     >>> plot_ic_ts(df_pd, 'RETURN_OO_1')
     """
-    df_pl = df_pl.select([date, col])
+    df_pl = df_pl.select(['date', col])
 
     df_pl = df_pl.select([
-        date,
+        'date',
         pl.col(col).alias('ic'),
         pl.col(col).rolling_mean(20).alias('sma_20'),
         pl.col(col).fill_nan(0).cum_sum().alias('cum_sum'),
@@ -61,10 +57,10 @@ def plot_ic_ts(df_pl: pl.DataFrame, col: str,
     ir = s.mean() / s.std()
     rate = (s.abs() > 0.02).value_counts(normalize=True).loc[True]
 
-    ax1 = df_pd.plot.line(x=date, y=['ic', 'sma_20'], alpha=0.5, lw=1,
+    ax1 = df_pd.plot.line(x='date', y=['ic', 'sma_20'], alpha=0.5, lw=1,
                           title=f"{col},IC={ic:0.4f},>0.02={rate:0.2f},IR={ir:0.4f}",
                           ax=ax)
-    ax2 = df_pd.plot.line(x=date, y=['cum_sum'], alpha=0.9, lw=1,
+    ax2 = df_pd.plot.line(x='date', y=['cum_sum'], alpha=0.9, lw=1,
                           secondary_y='cum_sum', c='r',
                           ax=ax1)
     ax1.axhline(y=ic, c="r", ls="--", lw=1)
@@ -118,11 +114,11 @@ def plot_ic_qq(df_pl: pl.DataFrame, col: str,
 
 def plot_ic_heatmap(df_pl: pl.DataFrame, col: str,
                     *,
-                    date: str = 'date', ax=None) -> None:
+                    ax=None) -> None:
     """月度IC热力图"""
-    df_pl = df_pl.select([date, col,
-                          pl.col(date).dt.year().alias('year'),
-                          pl.col(date).dt.month().alias('month')
+    df_pl = df_pl.select(['date', col,
+                          pl.col('date').dt.year().alias('year'),
+                          pl.col('date').dt.month().alias('month')
                           ])
     df_pl = df_pl.group_by(by=['year', 'month']).agg(pl.mean(col))
     df_pd = df_pl.to_pandas().set_index(['year', 'month'])
@@ -135,14 +131,14 @@ def plot_ic_heatmap(df_pl: pl.DataFrame, col: str,
 
 def create_ic_sheet(df_pl: pl.DataFrame, factor: str, forward_returns: Sequence[str],
                     *,
-                    date: str = 'date', axvlines=()):
+                    axvlines=()):
     """生成IC图表"""
-    df_pl = calc_ic(df_pl, factor, forward_returns, date=date)
+    df_pl = calc_ic(df_pl, factor, forward_returns)
 
     for forward_return in forward_returns:
         fig, axes = plt.subplots(2, 2, figsize=(12, 9))
 
-        plot_ic_ts(df_pl, forward_return, date=date, axvlines=axvlines, ax=axes[0, 0])
+        plot_ic_ts(df_pl, forward_return, axvlines=axvlines, ax=axes[0, 0])
         plot_ic_hist(df_pl, forward_return, ax=axes[0, 1])
         plot_ic_qq(df_pl, forward_return, ax=axes[1, 0])
-        plot_ic_heatmap(df_pl, forward_return, date=date, ax=axes[1, 1])
+        plot_ic_heatmap(df_pl, forward_return, ax=axes[1, 1])

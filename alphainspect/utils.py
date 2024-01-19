@@ -30,6 +30,36 @@ def cs_bucket(x: Expr, q: int = 10) -> Expr:
     return x.map_batches(lambda x1: Series(_qcut(x1, q), nan_to_null=True, dtype=Int16))
 
 
+def with_factor_quantile(df_pl: pl.DataFrame, factor: str, quantiles: int = 10, by_group: bool = False) -> pl.DataFrame:
+    """添加因子分位数信息
+
+    Parameters
+    ----------
+    df_pl
+    factor: str
+        因子名
+    quantiles: int
+        分层数
+    by_group:bool
+        是否分组
+
+    Returns
+    -------
+    pl.DataFrame
+
+    """
+
+    def _func_cs(df: pl.DataFrame):
+        return df.with_columns([
+            cs_bucket(pl.col(factor), quantiles).alias('factor_quantile'),
+        ])
+
+    if by_group:
+        return df_pl.group_by(by=['date', 'group']).map_groups(_func_cs)
+    else:
+        return df_pl.group_by(by=['date']).map_groups(_func_cs)
+
+
 def cumulative_returns(returns: np.ndarray, weights: np.ndarray,
                        period: int = 3, is_mean: bool = True,
                        benchmark: np.ndarray = None) -> np.ndarray:
