@@ -5,6 +5,7 @@ from typing import Sequence
 import polars as pl
 from matplotlib import pyplot as plt
 
+from alphainspect import _QUANTILE_
 from alphainspect.ic import calc_ic, plot_ic_ts, plot_ic_hist, plot_ic_heatmap
 from alphainspect.portfolio import calc_cum_return_by_quantile, plot_quantile_portfolio
 from alphainspect.turnover import calc_auto_correlation, calc_quantile_turnover, plot_factor_auto_correlation, plot_turnover_quantile
@@ -115,7 +116,6 @@ def create_3x2_sheet(df_pl: pl.DataFrame,
                      forward_return: str, fwd_ret_1: str,
                      *,
                      period: int = 5,
-                     quantile: int = 9,
                      periods: Sequence[int] = (1, 5, 10, 20),
                      axvlines: Sequence[str] = ()) -> None:
     """画2*3图
@@ -130,8 +130,6 @@ def create_3x2_sheet(df_pl: pl.DataFrame,
         用于记算累计收益的1期远期收益率
     period: int
         累计收益时持仓天数与资金份数
-    quantile:int
-        换手率关注第几层
     periods:
         换手率，多期比较
     axvlines
@@ -153,4 +151,6 @@ def create_3x2_sheet(df_pl: pl.DataFrame,
     df_auto_corr = calc_auto_correlation(df_pl, factor, periods=periods)
     df_turnover = calc_quantile_turnover(df_pl, periods=periods)
     plot_factor_auto_correlation(df_auto_corr, axvlines=axvlines, ax=axes[2, 0])
-    plot_turnover_quantile(df_turnover, quantile=quantile, periods=periods, axvlines=axvlines, ax=axes[2, 1])
+
+    q_min, q_max = df_turnover[_QUANTILE_].min(), df_turnover[_QUANTILE_].max()
+    plot_turnover_quantile(df_turnover, quantile=q_max, periods=periods, axvlines=axvlines, ax=axes[2, 1])

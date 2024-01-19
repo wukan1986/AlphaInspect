@@ -3,6 +3,7 @@ import pandas as pd
 import polars as pl
 from polars import Series, Expr, Int16
 
+from alphainspect import _QUANTILE_, _DATE_, _GROUP_
 from alphainspect._nb import _sub_portfolio_returns
 
 
@@ -51,13 +52,16 @@ def with_factor_quantile(df_pl: pl.DataFrame, factor: str, quantiles: int = 10, 
 
     def _func_cs(df: pl.DataFrame):
         return df.with_columns([
-            cs_bucket(pl.col(factor), quantiles).alias('factor_quantile'),
+            cs_bucket(pl.col(factor), quantiles).alias(_QUANTILE_),
         ])
 
+    # 将nan改成null
+    df_pl = df_pl.with_columns(pl.col(factor).fill_nan(None))
+
     if by_group:
-        return df_pl.group_by(by=['date', 'group']).map_groups(_func_cs)
+        return df_pl.group_by(by=[_DATE_, _GROUP_]).map_groups(_func_cs)
     else:
-        return df_pl.group_by(by=['date']).map_groups(_func_cs)
+        return df_pl.group_by(by=[_DATE_]).map_groups(_func_cs)
 
 
 def cumulative_returns(returns: np.ndarray, weights: np.ndarray,

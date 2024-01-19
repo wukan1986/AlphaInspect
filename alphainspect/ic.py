@@ -6,6 +6,7 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 from statsmodels import api as sm
 
+from alphainspect import _DATE_
 from alphainspect.utils import rank_ic
 
 
@@ -26,10 +27,10 @@ def calc_ic(df_pl: pl.DataFrame, factor: str, forward_returns: Sequence[str]) ->
     >>> calc_ic(df_pl, 'SMA_020', ['RETURN_OO_1', 'RETURN_OO_2', 'RETURN_CC_1'])
 
     """
-    return df_pl.group_by(by=['date']).agg(
+    return df_pl.group_by(by=[_DATE_]).agg(
         # 这里没有换名，名字将与forward_returns对应
         [rank_ic(x, factor) for x in forward_returns]
-    ).sort('date')
+    ).sort(_DATE_)
 
 
 def plot_ic_ts(df_pl: pl.DataFrame, col: str,
@@ -41,10 +42,10 @@ def plot_ic_ts(df_pl: pl.DataFrame, col: str,
     --------
     >>> plot_ic_ts(df_pd, 'RETURN_OO_1')
     """
-    df_pl = df_pl.select(['date', col])
+    df_pl = df_pl.select([_DATE_, col])
 
     df_pl = df_pl.select([
-        'date',
+        _DATE_,
         pl.col(col).alias('ic'),
         pl.col(col).rolling_mean(20).alias('sma_20'),
         pl.col(col).fill_nan(0).cum_sum().alias('cum_sum'),
@@ -57,10 +58,10 @@ def plot_ic_ts(df_pl: pl.DataFrame, col: str,
     ir = s.mean() / s.std()
     rate = (s.abs() > 0.02).value_counts(normalize=True).loc[True]
 
-    ax1 = df_pd.plot.line(x='date', y=['ic', 'sma_20'], alpha=0.5, lw=1,
+    ax1 = df_pd.plot.line(x=_DATE_, y=['ic', 'sma_20'], alpha=0.5, lw=1,
                           title=f"{col},IC={ic:0.4f},>0.02={rate:0.2f},IR={ir:0.4f}",
                           ax=ax)
-    ax2 = df_pd.plot.line(x='date', y=['cum_sum'], alpha=0.9, lw=1,
+    ax2 = df_pd.plot.line(x=_DATE_, y=['cum_sum'], alpha=0.9, lw=1,
                           secondary_y='cum_sum', c='r',
                           ax=ax1)
     ax1.axhline(y=ic, c="r", ls="--", lw=1)
@@ -116,9 +117,9 @@ def plot_ic_heatmap(df_pl: pl.DataFrame, col: str,
                     *,
                     ax=None) -> None:
     """月度IC热力图"""
-    df_pl = df_pl.select(['date', col,
-                          pl.col('date').dt.year().alias('year'),
-                          pl.col('date').dt.month().alias('month')
+    df_pl = df_pl.select([_DATE_, col,
+                          pl.col(_DATE_).dt.year().alias('year'),
+                          pl.col(_DATE_).dt.month().alias('month')
                           ])
     df_pl = df_pl.group_by(by=['year', 'month']).agg(pl.mean(col))
     df_pd = df_pl.to_pandas().set_index(['year', 'month'])

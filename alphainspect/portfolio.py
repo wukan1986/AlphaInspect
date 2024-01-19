@@ -3,14 +3,15 @@ import polars as pl
 import seaborn as sns
 from matplotlib import pyplot as plt
 
+from alphainspect import _QUANTILE_, _DATE_, _ASSET_
 from alphainspect.utils import cumulative_returns
 
 
 def calc_cum_return_by_quantile(df_pl: pl.DataFrame, fwd_ret_1: str, period: int = 5) -> pd.DataFrame:
-    df_pd = df_pl.to_pandas().set_index(['date', 'asset'])
+    df_pd = df_pl.to_pandas().set_index([_DATE_, _ASSET_])
     rr = df_pd[fwd_ret_1].unstack()  # 1日收益率
-    q_max = df_pd['factor_quantile'].max()
-    pp = df_pd['factor_quantile'].unstack()  # 信号仓位
+    q_max = df_pd[_QUANTILE_].max()
+    pp = df_pd[_QUANTILE_].unstack()  # 信号仓位
 
     out = pd.DataFrame(index=rr.index)
     rr = rr.to_numpy()
@@ -50,12 +51,12 @@ def create_portfolio_sheet(df_pl: pl.DataFrame,
                            fwd_ret_1: str,
                            period=5,
                            *,
-                           groups=('G0', 'G9'),
                            axvlines=()) -> None:
     df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period)
 
     fix, axes = plt.subplots(2, 1, figsize=(12, 9))
     plot_quantile_portfolio(df_cum_ret, fwd_ret_1, period, axvlines=axvlines, ax=axes[0])
+    groups = df_cum_ret.columns[[0, -1]]
     for i, g in enumerate(groups):
         ax = plt.subplot(223 + i)
         plot_portfolio_heatmap(df_cum_ret, group=g, ax=ax)

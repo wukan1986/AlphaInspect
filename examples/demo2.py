@@ -36,7 +36,7 @@ create_ic_sheet(df_output, factor, forward_returns)
 create_returns_sheet(df_output, factor, forward_returns)
 # %%
 fwd_ret_1 = 'RETURN_OO_1'  # 计算净值必需提供1日收益率
-create_portfolio_sheet(df_output, fwd_ret_1, period=5, groups=('G0', 'G9'), axvlines=axvlines)
+create_portfolio_sheet(df_output, fwd_ret_1, period=5, axvlines=axvlines)
 create_turnover_sheet(df_output, factor, periods=(1, 5, 10, 20), axvlines=axvlines)
 
 plt.show()
