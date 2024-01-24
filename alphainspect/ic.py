@@ -143,3 +143,5 @@ def create_ic_sheet(df_pl: pl.DataFrame, factor: str, forward_returns: Sequence[
         plot_ic_hist(df_pl, forward_return, ax=axes[0, 1])
         plot_ic_qq(df_pl, forward_return, ax=axes[1, 0])
         plot_ic_heatmap(df_pl, forward_return, ax=axes[1, 1])
+
+        fig.tight_layout()

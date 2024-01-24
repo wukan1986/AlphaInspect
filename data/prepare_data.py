@@ -20,10 +20,13 @@ df = pd.DataFrame({
     'HIGH': np.cumprod(1 + np.random.uniform(-0.1, 0.1, size=(_N, _K)), axis=0).reshape(-1),
     'LOW': np.cumprod(1 + np.random.uniform(-0.1, 0.1, size=(_N, _K)), axis=0).reshape(-1),
     'CLOSE': np.cumprod(1 + np.random.uniform(-0.1, 0.1, size=(_N, _K)), axis=0).reshape(-1),
+    "FILTER": np.tri(_N, _K, k=-2).reshape(-1),
 }, index=pd.MultiIndex.from_product([date, asset], names=['date', 'asset'])).reset_index()
 
 # 向脚本输入数据
 df = pl.from_pandas(df)
+# 数据长度不同
+df = df.filter(pl.col('FILTER') == 1)
 
 """
 RETURN_OO_1 = ts_delay(OPEN, -2) / ts_delay(OPEN, -1) - 1

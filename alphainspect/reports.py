@@ -110,6 +110,8 @@ def create_2x2_sheet(df_pl: pl.DataFrame,
     df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period)
     plot_quantile_portfolio(df_cum_ret, fwd_ret_1, period, axvlines=axvlines, ax=axes[1, 1])
 
+    fig.tight_layout()
+
 
 def create_3x2_sheet(df_pl: pl.DataFrame,
                      factor: str,
@@ -154,3 +156,5 @@ def create_3x2_sheet(df_pl: pl.DataFrame,
 
     q_min, q_max = df_turnover[_QUANTILE_].min(), df_turnover[_QUANTILE_].max()
     plot_turnover_quantile(df_turnover, quantile=q_max, periods=periods, axvlines=axvlines, ax=axes[2, 1])
+
+    fig.tight_layout()

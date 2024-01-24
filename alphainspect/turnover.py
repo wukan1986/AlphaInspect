@@ -70,9 +70,11 @@ def create_turnover_sheet(df, factor,
     df2 = calc_quantile_turnover(df, periods=periods)
     q_min, q_max = df2[_QUANTILE_].min(), df2[_QUANTILE_].max()
 
-    fix, axes = plt.subplots(2, 1, figsize=(12, 9))
+    fig, axes = plt.subplots(2, 1, figsize=(12, 9))
     plot_factor_auto_correlation(df1, axvlines=axvlines, ax=axes[0])
 
     for i, q in enumerate((q_min, q_max)):
         ax = plt.subplot(223 + i)
         plot_turnover_quantile(df2, quantile=q, periods=periods, axvlines=axvlines, ax=ax)
+
+    fig.tight_layout()

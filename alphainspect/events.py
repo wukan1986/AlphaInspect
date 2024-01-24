@@ -109,3 +109,5 @@ def create_events_sheet(df_pl: pl.DataFrame, condition: pl.Expr, axvlines: Seque
     plot_events_count(df_pl, ax=axes[0], axvlines=axvlines)
     plot_events_average(df_pl, ax=axes[1])
     plot_events_errorbar(df_pl, ax=axes[2])
+
+    fig.tight_layout()

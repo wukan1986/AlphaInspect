@@ -54,9 +54,11 @@ def create_portfolio_sheet(df_pl: pl.DataFrame,
                            axvlines=()) -> None:
     df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period)
 
-    fix, axes = plt.subplots(2, 1, figsize=(12, 9))
+    fig, axes = plt.subplots(2, 1, figsize=(12, 9))
     plot_quantile_portfolio(df_cum_ret, fwd_ret_1, period, axvlines=axvlines, ax=axes[0])
     groups = df_cum_ret.columns[[0, -1]]
     for i, g in enumerate(groups):
         ax = plt.subplot(223 + i)
         plot_portfolio_heatmap(df_cum_ret, group=g, ax=ax)
+
+    fig.tight_layout()
