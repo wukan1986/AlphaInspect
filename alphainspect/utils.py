@@ -115,8 +115,10 @@ def cumulative_returns(returns: np.ndarray, weights: np.ndarray,
     if weights.ndim == 1:
         weights = weights.reshape(-1, 1)
 
+    # 记录有效数字开始位置，之后将从这开始计算
+    start = (np.isfinite(weights).any(axis=1)).argmax()
     # 修正数据中出现的nan
-    returns = np.where(returns == returns, returns, 0.0)
+    returns = np.where(returns == returns, returns, 1.0)
     # 权重需要已经分配好，绝对值和为1
     weights = np.where(weights == weights, weights, 0.0)
 
@@ -124,11 +126,11 @@ def cumulative_returns(returns: np.ndarray, weights: np.ndarray,
     m, n = weights.shape
 
     #  记录每份资金每期收益率
-    out = _sub_portfolio_returns(m, n, weights, returns, period)
+    out = _sub_portfolio_returns(m, n, weights, returns, period, start)
 
     if benchmark is None:
         # 多份净值直接叠加后平均
-        return (out + 1).cumprod(axis=0).mean(axis=1)
+        return out.mean(axis=1)
     else:
         # 有基准，计算超额收益
-        return (out + 1).cumprod(axis=0).mean(axis=1) - (benchmark + 1).cumprod()
+        return out.mean(axis=1) - (benchmark + 1).cumprod()

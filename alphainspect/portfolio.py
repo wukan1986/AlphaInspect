@@ -15,14 +15,14 @@ def calc_cum_return_by_quantile(df_pl: pl.DataFrame, fwd_ret_1: str, period: int
     qq = df_pd[_QUANTILE_].unstack()  # 因子所在分组编号
 
     out = pd.DataFrame(index=rr.index)
-    rr = rr.to_numpy()  # 日收益
+    rr = rr.to_numpy() + 1  # 日收益
     qq = qq.to_numpy()  # 分组编号
     for i in range(int(q_max) + 1):
         # 等权
         b = qq == i
         c = b.sum(axis=1).reshape(-1, 1)
         c = np.where(c == 0, np.nan, c)
-
+        # 权重绝对值和为1
         out[f'G{i}'] = cumulative_returns(rr, b / c, period=period)
     return out
 
