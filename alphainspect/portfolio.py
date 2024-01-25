@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import polars as pl
 import seaborn as sns
@@ -11,13 +12,18 @@ def calc_cum_return_by_quantile(df_pl: pl.DataFrame, fwd_ret_1: str, period: int
     df_pd = df_pl.to_pandas().set_index([_DATE_, _ASSET_])
     rr = df_pd[fwd_ret_1].unstack()  # 1日收益率
     q_max = df_pd[_QUANTILE_].max()
-    pp = df_pd[_QUANTILE_].unstack()  # 信号仓位
+    qq = df_pd[_QUANTILE_].unstack()  # 因子所在分组编号
 
     out = pd.DataFrame(index=rr.index)
-    rr = rr.to_numpy()
-    pp = pp.to_numpy()
+    rr = rr.to_numpy()  # 日收益
+    qq = qq.to_numpy()  # 分组编号
     for i in range(int(q_max) + 1):
-        out[f'G{i}'] = cumulative_returns(rr, pp == i, period=period, is_mean=True)
+        # 等权
+        b = qq == i
+        c = b.sum(axis=1).reshape(-1, 1)
+        c = np.where(c == 0, np.nan, c)
+
+        out[f'G{i}'] = cumulative_returns(rr, b / c, period=period)
     return out
 
 

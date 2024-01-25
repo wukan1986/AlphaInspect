@@ -65,7 +65,7 @@ def with_factor_quantile(df_pl: pl.DataFrame, factor: str, quantiles: int = 10, 
 
 
 def cumulative_returns(returns: np.ndarray, weights: np.ndarray,
-                       period: int = 3, is_mean: bool = True,
+                       period: int = 3,
                        benchmark: np.ndarray = None) -> np.ndarray:
     """累积收益
 
@@ -97,10 +97,6 @@ def cumulative_returns(returns: np.ndarray, weights: np.ndarray,
         持仓权重。需要将信号移动到出场日期
     period: int
         持有期数。即资金拆成多少份
-    is_mean:
-        权重处理方式。
-        - True 表示等权，weights的取值为-1,0,1
-        - False 表示在外指定权重。weights的取值为-1~1,weights.abs().sum(axis=1)==1
     benchmark: 1d np.ndarray
         基准收益率
 
@@ -113,20 +109,22 @@ def cumulative_returns(returns: np.ndarray, weights: np.ndarray,
     https://github.com/quantopian/alphalens/issues/187
 
     """
-    # 修正数据中出现的nan
-    returns = np.where(returns == returns, returns, 0.0)
-    weights = np.where(weights == weights, weights, 0.0)
     # 一维修改成二维，代码统一
     if returns.ndim == 1:
         returns = returns.reshape(-1, 1)
     if weights.ndim == 1:
         weights = weights.reshape(-1, 1)
 
+    # 修正数据中出现的nan
+    returns = np.where(returns == returns, returns, 0.0)
+    # 权重需要已经分配好，绝对值和为1
+    weights = np.where(weights == weights, weights, 0.0)
+
     # 形状
     m, n = weights.shape
 
     #  记录每份资金每期收益率
-    out = _sub_portfolio_returns(m, n, weights, returns, period, is_mean)
+    out = _sub_portfolio_returns(m, n, weights, returns, period)
 
     if benchmark is None:
         # 多份净值直接叠加后平均

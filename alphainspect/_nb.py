@@ -34,7 +34,7 @@ def np_tile(arr, reps):
 
 
 @jit(nopython=True, nogil=True, fastmath=True, cache=True, parallel=True)
-def _sub_portfolio_returns(m: int, n: int, weights: np.ndarray, returns: np.ndarray, period: int = 3, is_mean: bool = True) -> np.ndarray:
+def _sub_portfolio_returns(m: int, n: int, weights: np.ndarray, returns: np.ndarray, period: int = 3) -> np.ndarray:
     # tile时可能长度不够，所以补充一段
     weights = np.concatenate((weights, weights[:period]), axis=0)
     # 记录每份的收益率
@@ -55,10 +55,6 @@ def _sub_portfolio_returns(m: int, n: int, weights: np.ndarray, returns: np.ndar
             continue
 
         # 计算此份资金的收益，净值从1开始
-        if is_mean:
-            # 等权分配
-            np_mean(returns * w, axis=1, out=out[:, i])
-        else:
-            # 将权重分配交给外部。一般pos.abs.sum==1
-            np_sum(returns * w, axis=1, out=out[:, i])
+        np_sum(returns * w, axis=1, out=out[:, i])
+
     return out
