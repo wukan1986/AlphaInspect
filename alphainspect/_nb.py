@@ -76,7 +76,7 @@ def _sub_portfolio_returns_x1(m: int, n: int, weights: np.ndarray, returns: np.n
 
 
 @jit(nopython=True, nogil=True, fastmath=True, cache=True, parallel=True)
-def _sub_portfolio_returns(m: int, n: int, weights: np.ndarray, returns: np.ndarray, period: int = 3, start=0) -> np.ndarray:
+def _sub_portfolio_returns(m: int, n: int, weights: np.ndarray, returns: np.ndarray, vailds: np.ndarray, period: int = 3) -> np.ndarray:
     """资金分成N份。每隔N天取一次权重，这N天内每次都用上次的市值乘以权重得到新市值，乘以收益率得到日终市值"""
     # 记录每份的收益率
     out = np.zeros(shape=(m, period), dtype=float)
@@ -84,9 +84,11 @@ def _sub_portfolio_returns(m: int, n: int, weights: np.ndarray, returns: np.ndar
     for i in prange(period):
         val = np.zeros(shape=(m, n), dtype=float)
         val[:, 0] = 1
-        for j in range(start + i, m):
+        for j in range(i, m):
+            if not vailds[j]:
+                val[j] = val[j - 1]
+                continue
             if j % period == i:
-                # 取一行权重。!!!之后权重不能全0。因为清仓后资金没有维护
                 val[j] = np.sum(val[j - 1]) * weights[j]
             else:
                 # 取昨天的市值
