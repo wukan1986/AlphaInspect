@@ -65,8 +65,9 @@ def with_factor_quantile(df_pl: pl.DataFrame, factor: str, quantiles: int = 10, 
 
 
 def cumulative_returns(returns: np.ndarray, weights: np.ndarray,
-                       period: int = 3,
-                       benchmark: np.ndarray = None) -> np.ndarray:
+                       funds: int = 3, freq: int = 3,
+                       benchmark: np.ndarray = None,
+                       ret_mean: bool = True) -> np.ndarray:
     """累积收益
 
     精确计算收益是非常麻烦的事情，比如考虑手续费、滑点、涨跌停无法入场。考虑过多也会导致计算量巨大。
@@ -83,22 +84,20 @@ def cumulative_returns(returns: np.ndarray, weights: np.ndarray,
     [0,1,1,1,0,0] # 第1、4、7...位，fill后两格
     [0,0,1,1,1,0] # 第2、5、8...位，fill后两格
 
-    之后就是weights*returns就是每期的收益率，横截面mean后就是这份资金每天的收益率。+1再cumprod就是这份资金的净值
-    最后多份资金直接平均，就是总的净值
-
-    weights*returns做了period轮
-    cumprod计算了period次
-
     Parameters
     ----------
     returns: np.ndarray
         1期简单收益率。自动记在出场位置。
     weights: np.ndarray
         持仓权重。需要将信号移动到出场日期
-    period: int
-        持有期数。即资金拆成多少份
+    funds: int
+        资金拆成多少份
+    freq:int
+        再调仓频率
     benchmark: 1d np.ndarray
         基准收益率
+    ret_mean: bool
+        返回多份资金合成曲线
 
     Returns
     -------
@@ -118,7 +117,7 @@ def cumulative_returns(returns: np.ndarray, weights: np.ndarray,
     # 记录有效数
     vailds = np.isfinite(weights).any(axis=1)
     # 修正数据中出现的nan
-    returns = np.where(returns == returns, returns, 0.0)
+    returns = np.where(returns == returns, returns, 1.0)
     # 权重需要已经分配好，绝对值和为1
     weights = np.where(weights == weights, weights, 0.0)
 
@@ -126,11 +125,13 @@ def cumulative_returns(returns: np.ndarray, weights: np.ndarray,
     m, n = weights.shape
 
     #  记录每份资金每期收益率
-    out = _sub_portfolio_returns(m, n, weights, returns, vailds, period)
-
-    if benchmark is None:
-        # 多份净值直接叠加后平均
-        return out.mean(axis=1)
+    out = _sub_portfolio_returns(m, n, weights, returns, vailds, funds, freq)
+    if ret_mean:
+        if benchmark is None:
+            # 多份净值直接叠加后平均
+            return out.mean(axis=1)
+        else:
+            # 有基准，计算超额收益
+            return out.mean(axis=1) - (benchmark + 1).cumprod()
     else:
-        # 有基准，计算超额收益
-        return out.mean(axis=1) - (benchmark + 1).cumprod()
+        return out

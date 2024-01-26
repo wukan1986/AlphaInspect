@@ -25,11 +25,9 @@ pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --upgrade alphainspect  
 
 ![2x2](docs/img/2x2.png)
 
-## 累计收益的算法
+## 累计收益的计算方法
 
-如何计算持有1期、5期的收益率呢？5期收益难道忽略中间4期的因子信号吗？不同的起始入场点会得到不同的累计收益怎么处理？
-
-多方参考后的处理方法是：将资金平均分成5份，每天入场1份，每份都是持有5天后再调仓，然后得到每份的累计收益区线。将5条曲线合并成最终的累计收益曲线
+参考 [cum_returns.md](cum_returns.md)
 
 ## `alphainspect`与`alphalens`的不同
 
