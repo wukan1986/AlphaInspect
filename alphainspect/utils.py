@@ -118,7 +118,7 @@ def cumulative_returns(returns: np.ndarray, weights: np.ndarray,
     # 记录有效数
     vailds = np.isfinite(weights).any(axis=1)
     # 修正数据中出现的nan
-    returns = np.where(returns == returns, returns, 1.0)
+    returns = np.where(returns == returns, returns, 0.0)
     # 权重需要已经分配好，绝对值和为1
     weights = np.where(weights == weights, weights, 0.0)
 

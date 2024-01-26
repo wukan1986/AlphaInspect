@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import polars as pl
 import seaborn as sns
 
-from alphainspect import _QUANTILE_
+from alphainspect import _QUANTILE_, _DATE_
 
 
 def plot_quantile_returns_bar(df_pl: pl.DataFrame, factor: str, forward_returns: Sequence[str],
@@ -23,26 +23,22 @@ def plot_quantile_returns_bar(df_pl: pl.DataFrame, factor: str, forward_returns:
     ax.set_xlabel('')
 
 
-def plot_quantile_returns_violin(df_pl: pl.DataFrame, factor: str, forward_returns: Sequence[str], *, ax=None):
-    """分组收益小提琴图
+def plot_quantile_returns_spread(df_pl: pl.DataFrame, factor: str, forward_returns: Sequence[str],
+                                 *,
+                                 ax=None):
+    """多空收益图
 
     Examples
     --------
-    >>> plot_quantile_returns_violin(df_pl, 'GP_0000', ['RETURN_OO_1', 'RETURN_OO_2', 'RETURN_CC_1'])
-
-    Notes
-    -----
-    速度有点慢，所以后面进行了截断
+    >>> plot_quantile_returns_bar(df_pl, 'GP_0000', ['RETURN_OO_1', 'RETURN_OO_2', 'RETURN_CC_1'])
     """
-    # TODO 超大数据有必要截断吗?
-    df_pl = df_pl.select(_QUANTILE_, *forward_returns).tail(5000 * 60)
-    df_pd = df_pl.to_pandas().set_index(_QUANTILE_)
-
-    df_pd = df_pd.stack().reset_index()
-    df_pd.columns = ['x', 'hue', 'y']
-    df_pd = df_pd.sort_values(by=['x', 'hue'])
-    ax = sns.violinplot(data=df_pd, x='x', y='y', hue='hue', ax=ax)
-    ax.set_title(f'{factor}, Return By Factor Quantile')
+    df_pl = df_pl.group_by(by=[_DATE_, _QUANTILE_]).agg([pl.mean(y) for y in forward_returns]).sort(_DATE_, _QUANTILE_)
+    df_pl = df_pl.group_by(by=[_DATE_], maintain_order=True).agg([pl.last(y) - pl.first(y) for y in forward_returns])
+    df_pd = df_pl.to_pandas().set_index(_DATE_)
+    # TODO 1日频率还好，持仓5天日频，无法正常表示
+    df_pd = df_pd.add(1, fill_value=0).cumprod()
+    ax = df_pd.plot.line(ax=ax)
+    ax.set_title(f'{factor}, Spread By Factor Quantile')
     ax.set_xlabel('')
 
 
@@ -72,5 +68,6 @@ def create_returns_sheet(df_pl: pl.DataFrame, factor: str, forward_returns: Sequ
     df_pl = df_pl.filter(pl.col(_QUANTILE_).is_not_null())
     plot_quantile_returns_bar(df_pl, factor, forward_returns, ax=axes[0])
     plot_quantile_returns_box(df_pl, factor, forward_returns, ax=axes[1])
+    # plot_quantile_returns_spread(df_pl, factor, forward_returns, ax=axes[1])
 
     fig.tight_layout()

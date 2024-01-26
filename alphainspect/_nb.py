@@ -89,11 +89,13 @@ def _sub_portfolio_returns(m: int, n: int, weights: np.ndarray, returns: np.ndar
                 val[j] = val[j - 1]
                 continue
             if j % period == i:
-                val[j] = np.sum(val[j - 1]) * weights[j]
+                val[j] = np.sum(np.abs(val[j - 1])) * weights[j]
             else:
                 # 取昨天的市值
                 val[j] = val[j - 1]
-            val[j] = returns[j] * val[j]
-        np_sum(val, axis=1, out=out[:, i])
+            # 多头同涨，空头反向。连续两天空头计算是错误的，这里忽略这个错误
+            r = np.where(val[j] >= 0, 1 + returns[j], 1 - returns[j])
+            val[j] = r * val[j]
+        np_sum(np.abs(val), axis=1, out=out[:, i])
 
     return out

@@ -10,5 +10,5 @@ print(df1.mean(axis=1))
 rr = df.copy()
 df[:] = 0.5
 
-x = cumulative_returns(rr, df, period=10)
+x = cumulative_returns(rr.to_numpy(), df.to_numpy(), period=10)
 print(x)
