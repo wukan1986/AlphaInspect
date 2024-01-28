@@ -11,5 +11,5 @@ print(df1.mean(axis=1))
 rr = df.copy()
 df[:] = -1
 
-x = cumulative_returns(rr.to_numpy(), df.to_numpy(), funds=2, freq=5, ret_mean=False)
+x = cumulative_returns(rr.to_numpy(), df.to_numpy(), funds=2, freq=8, ret_mean=False)
 print(x)

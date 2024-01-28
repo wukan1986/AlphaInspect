@@ -67,7 +67,8 @@ def with_factor_quantile(df_pl: pl.DataFrame, factor: str, quantiles: int = 10, 
 def cumulative_returns(returns: np.ndarray, weights: np.ndarray,
                        funds: int = 3, freq: int = 3,
                        benchmark: np.ndarray = None,
-                       ret_mean: bool = True) -> np.ndarray:
+                       ret_mean: bool = True,
+                       init_cash: float = 1.0) -> np.ndarray:
     """累积收益
 
     精确计算收益是非常麻烦的事情，比如考虑手续费、滑点、涨跌停无法入场。考虑过多也会导致计算量巨大。
@@ -89,7 +90,7 @@ def cumulative_returns(returns: np.ndarray, weights: np.ndarray,
     returns: np.ndarray
         1期简单收益率。自动记在出场位置。
     weights: np.ndarray
-        持仓权重。需要将信号移动到出场日期
+        持仓权重。需要将信号移动到出场日期。权重绝对值和
     funds: int
         资金拆成多少份
     freq:int
@@ -98,6 +99,8 @@ def cumulative_returns(returns: np.ndarray, weights: np.ndarray,
         基准收益率
     ret_mean: bool
         返回多份资金合成曲线
+    init_cash: float
+        初始资金
 
     Returns
     -------
@@ -125,7 +128,7 @@ def cumulative_returns(returns: np.ndarray, weights: np.ndarray,
     m, n = weights.shape
 
     #  记录每份资金每期收益率
-    out = _sub_portfolio_returns(m, n, weights, returns, vailds, funds, freq)
+    out = _sub_portfolio_returns(m, n, weights, returns, vailds, funds, freq, init_cash)
     if ret_mean:
         if benchmark is None:
             # 多份净值直接叠加后平均

@@ -23,7 +23,16 @@ pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --upgrade alphainspect  
 4. 运行`examples/demo3.py`示例多进程并行输出HTML网页报表
 5. 运行`examples/demo4.py`示例事件图表
 
+## 部分图示
+
 ![2x2](docs/img/2x2.png)
+![3x2](docs/img/3x2.png)
+![ic](docs/img/ic.png)
+![returns](docs/img/returns.png)
+![cum_returns](docs/img/cum_returns.png)
+![spread](docs/img/spread.png)
+![turnover](docs/img/turnover.png)
+![events](docs/img/events.png)
 
 ## 累计收益的计算方法
 
@@ -46,7 +55,7 @@ pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --upgrade alphainspect  
     2. `alphainspect`只提供等权一种计算方法，实现简单
 4. 收益率计算方法不同
     1. `alphalens`多期简单收益率几何平均成1期，然后+1累乘
-    2. `alphainspect`由用户提供1期简单收益率，然后+1累乘，更精确
+    2. `alphainspect`由用户提供1期简单收益率，然后根据要求持有或调仓，得到新的权益，循环迭代下去。更精确
 
 ## `alphainspect`与`alphalens`的相同
 
