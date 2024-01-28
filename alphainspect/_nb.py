@@ -49,7 +49,7 @@ def np_tile(arr, reps):
     return out
 
 
-# @jit(nopython=True, nogil=True, fastmath=True, cache=True, parallel=True)
+@jit(nopython=True, nogil=True, fastmath=True, cache=True, parallel=True)
 def _sub_portfolio_returns(m: int, n: int,
                            weights: np.ndarray, returns: np.ndarray, vailds: np.ndarray,
                            funds: int = 1,
