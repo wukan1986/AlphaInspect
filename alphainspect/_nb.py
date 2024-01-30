@@ -51,7 +51,7 @@ def np_tile(arr, reps):
 
 @jit(nopython=True, nogil=True, fastmath=True, cache=True, parallel=True)
 def _sub_portfolio_returns(m: int, n: int,
-                           weights: np.ndarray, returns: np.ndarray, vailds: np.ndarray,
+                           weights: np.ndarray, returns: np.ndarray, valids: np.ndarray,
                            funds: int = 1,
                            freq: int = -1,
                            init_cash: float = 1.0) -> np.ndarray:
@@ -67,7 +67,7 @@ def _sub_portfolio_returns(m: int, n: int,
         val[:, 0] = init_cash  # 初始资金全放第0列
         last_sum = init_cash
         for j in range(i, m):
-            if not vailds[j]:
+            if not valids[j]:
                 cashflow[j] = cashflow[j - 1]
                 val[j] = val[j - 1]
                 continue
