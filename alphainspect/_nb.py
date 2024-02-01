@@ -51,11 +51,14 @@ def np_tile(arr, reps):
 
 @jit(nopython=True, nogil=True, fastmath=True, cache=True, parallel=True)
 def _sub_portfolio_returns(m: int, n: int,
-                           weights: np.ndarray, returns: np.ndarray, valids: np.ndarray,
+                           weights: np.ndarray, returns: np.ndarray,
                            funds: int = 1,
                            freq: int = -1,
                            init_cash: float = 1.0) -> np.ndarray:
-    """资金分成N份。每隔N天取一次权重，这N天内每次都用上次的市值乘以权重得到新市值，乘以收益率得到日终市值"""
+    """资金分成N份。每隔N天取一次权重，这N天内每次都用上次的市值乘以权重得到新市值，乘以收益率得到日终市值
+
+    输出的数据全不为nan
+    """
     if freq == -1:
         freq = m
     # 记录每份的收益率
@@ -67,10 +70,6 @@ def _sub_portfolio_returns(m: int, n: int,
         val[:, 0] = init_cash  # 初始资金全放第0列
         last_sum = init_cash
         for j in range(i, m):
-            if not valids[j]:
-                cashflow[j] = cashflow[j - 1]
-                val[j] = val[j - 1]
-                continue
             # 调仓节点，如果设成m表示只第一天进行调仓
             if (j % freq == i) and (last_sum > 0):
                 val[j] = last_sum * weights[j]
@@ -89,6 +88,7 @@ def _sub_portfolio_returns(m: int, n: int,
                 cashflow[j] += val[j]
                 val[j] = 0
 
+        # 如果不水平求和，就能看到每支股票的累计收益
         np_sum(val + cashflow, axis=1, out=out[:, i])
 
     return out

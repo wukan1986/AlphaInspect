@@ -68,7 +68,9 @@ def cumulative_returns(returns: np.ndarray, weights: np.ndarray,
                        funds: int = 3, freq: int = 3,
                        benchmark: np.ndarray = None,
                        ret_mean: bool = True,
-                       init_cash: float = 1.0) -> np.ndarray:
+                       init_cash: float = 1.0,
+                       risk_free: float = 1.0,  # 1.0 + 0.025 / 250
+                       ) -> np.ndarray:
     """累积收益
 
     精确计算收益是非常麻烦的事情，比如考虑手续费、滑点、涨跌停无法入场。考虑过多也会导致计算量巨大。
@@ -101,6 +103,8 @@ def cumulative_returns(returns: np.ndarray, weights: np.ndarray,
         返回多份资金合成曲线
     init_cash: float
         初始资金
+    risk_free: float
+        无风险收益率。用在现金列。空仓时，可以给现金提供利息
 
     Returns
     -------
@@ -117,18 +121,29 @@ def cumulative_returns(returns: np.ndarray, weights: np.ndarray,
     if weights.ndim == 1:
         weights = weights.reshape(-1, 1)
 
-    # 记录有效数
-    valids = np.isfinite(weights).any(axis=1)
+    # 形状
+    m, n = weights.shape
+
+    # 现金权重
+    weights_cash = 1 - np.round(np.nansum(np.abs(weights), axis=1), 5)
+    # TODO 也可以添加两列现金，一列有利息，一列没利息。细节要按策略进行定制
+    returns = np.concatenate((np.ones(shape=(m, 1), dtype=returns.dtype), returns), axis=1)
+    weights = np.concatenate((np.zeros(shape=(m, 1), dtype=weights.dtype), weights), axis=1)
+    # 添加第0列做为现金，用于处理CTA空仓的问题
+    weights[:, 0] = weights_cash
+    # 可以考虑给现金指定一个固定收益
+    returns[:, 0] = risk_free
+
     # 修正数据中出现的nan
     returns = np.where(returns == returns, returns, 1.0)
     # 权重需要已经分配好，绝对值和为1
     weights = np.where(weights == weights, weights, 0.0)
 
-    # 形状
+    # 新形状
     m, n = weights.shape
 
     #  记录每份资金每期收益率
-    out = _sub_portfolio_returns(m, n, weights, returns, valids, funds, freq, init_cash)
+    out = _sub_portfolio_returns(m, n, weights, returns, funds, freq, init_cash)
     if ret_mean:
         if benchmark is None:
             # 多份净值直接叠加后平均
