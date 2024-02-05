@@ -87,7 +87,7 @@ def main(df: pl.DataFrame):
     # logger.info("start...")
 
     df = df.sort(by=[_DATE_, _ASSET_])
-    df = df.group_by(by=[_ASSET_]).map_groups(func_0_ts__asset)
+    df = df.group_by(_ASSET_).map_groups(func_0_ts__asset)
 
     # drop intermediate columns
     df = df.drop(columns=list(filter(lambda x: re.search(r"^_x_\d+", x), df.columns)))

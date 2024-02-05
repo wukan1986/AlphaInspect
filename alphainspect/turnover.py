@@ -14,7 +14,7 @@ def calc_auto_correlation(df_pl: pl.DataFrame,
                           *,
                           periods: Sequence[int]):
     """计算排序自相关"""
-    return df_pl.group_by(by=[_DATE_]).agg([auto_corr(factor, p).alias(f'AC{p:02d}') for p in periods]).sort(_DATE_)
+    return df_pl.group_by(_DATE_).agg([auto_corr(factor, p).alias(f'AC{p:02d}') for p in periods]).sort(_DATE_)
 
 
 def _list_to_set(x):
@@ -36,7 +36,7 @@ def calc_quantile_turnover(df_pl: pl.DataFrame,
             df[f'P{p:02d}'] = _set_diff(df[_ASSET_], p)
         return df
 
-    df_pd: pd.DataFrame = df_pl.group_by(by=[_DATE_, _QUANTILE_]).agg(_ASSET_).sort(_DATE_).to_pandas()
+    df_pd: pd.DataFrame = df_pl.group_by(_DATE_, _QUANTILE_).agg(_ASSET_).sort(_DATE_).to_pandas()
     df_pd[_ASSET_] = df_pd[_ASSET_].apply(_list_to_set)
     return df_pd.groupby(by=_QUANTILE_).apply(_func_ts)
 

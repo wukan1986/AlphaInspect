@@ -27,7 +27,7 @@ def calc_ic(df_pl: pl.DataFrame, factor: str, forward_returns: Sequence[str]) ->
     >>> calc_ic(df_pl, 'SMA_020', ['RETURN_OO_1', 'RETURN_OO_2', 'RETURN_CC_1'])
 
     """
-    return df_pl.group_by(by=[_DATE_]).agg(
+    return df_pl.group_by(_DATE_).agg(
         # 这里没有换名，名字将与forward_returns对应
         [rank_ic(x, factor) for x in forward_returns]
     ).sort(_DATE_)
@@ -121,7 +121,7 @@ def plot_ic_heatmap(df_pl: pl.DataFrame, col: str,
                           pl.col(_DATE_).dt.year().alias('year'),
                           pl.col(_DATE_).dt.month().alias('month')
                           ])
-    df_pl = df_pl.group_by(by=['year', 'month']).agg(pl.mean(col))
+    df_pl = df_pl.group_by('year', 'month').agg(pl.mean(col))
     df_pd = df_pl.to_pandas().set_index(['year', 'month'])
 
     # https://matplotlib.org/2.0.2/examples/color/colormaps_reference.html

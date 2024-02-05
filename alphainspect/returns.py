@@ -16,7 +16,7 @@ def plot_quantile_returns_bar(df_pl: pl.DataFrame, factor: str, forward_returns:
     --------
     >>> plot_quantile_returns_bar(df_pl, 'GP_0000', ['RETURN_OO_1', 'RETURN_OO_2', 'RETURN_CC_1'])
     """
-    df_pl = df_pl.group_by(by=[_QUANTILE_]).agg([pl.mean(y) for y in forward_returns]).sort(_QUANTILE_)
+    df_pl = df_pl.group_by(_QUANTILE_).agg([pl.mean(y) for y in forward_returns]).sort(_QUANTILE_)
     df_pd = df_pl.to_pandas().set_index(_QUANTILE_)
     ax = df_pd.plot.bar(ax=ax)
     ax.set_title(f'{factor},Mean Return By Factor Quantile')

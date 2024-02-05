@@ -56,7 +56,7 @@ def with_around_price(df_pl: pl.DataFrame, price: str, periods_before: int = 5, 
         c = pl.from_numpy(b, schema=make_around_columns(periods_before, periods_after))
         return df.with_columns(c)
 
-    return df_pl.group_by(by=_ASSET_).map_groups(_func_ts).with_columns(_COL_AROUND_.fill_nan(None))
+    return df_pl.group_by(_ASSET_).map_groups(_func_ts).with_columns(_COL_AROUND_.fill_nan(None))
 
 
 def plot_events_errorbar(df_pl: pl.DataFrame, ax=None) -> None:
@@ -66,9 +66,9 @@ def plot_events_errorbar(df_pl: pl.DataFrame, ax=None) -> None:
     _min, _max = min_max['min'], min_max['max']
 
     df_pl = df_pl.select(_QUANTILE_, _COL_AROUND_)
-    mean_pl = df_pl.group_by(by=[_QUANTILE_]).agg(pl.mean(_REG_AROUND_)).sort(_QUANTILE_)
+    mean_pl = df_pl.group_by(_QUANTILE_).agg(pl.mean(_REG_AROUND_)).sort(_QUANTILE_)
     mean_pd: pd.DataFrame = mean_pl.to_pandas().set_index(_QUANTILE_).T
-    std_pl = df_pl.group_by(by=[_QUANTILE_]).agg(pl.std(_REG_AROUND_)).sort(_QUANTILE_)
+    std_pl = df_pl.group_by(_QUANTILE_).agg(pl.std(_REG_AROUND_)).sort(_QUANTILE_)
     std_pd: pd.DataFrame = std_pl.to_pandas().set_index(_QUANTILE_).T
 
     a = mean_pd.loc[:, _max]
@@ -83,7 +83,7 @@ def plot_events_errorbar(df_pl: pl.DataFrame, ax=None) -> None:
 def plot_events_average(df_pl: pl.DataFrame, ax=None) -> None:
     """事件前后标准化后平均价"""
     df_pl = df_pl.select(_QUANTILE_, _COL_AROUND_)
-    mean_pl = df_pl.group_by(by=[_QUANTILE_]).agg(pl.mean(_REG_AROUND_)).sort(_QUANTILE_)
+    mean_pl = df_pl.group_by(_QUANTILE_).agg(pl.mean(_REG_AROUND_)).sort(_QUANTILE_)
     mean_pd: pd.DataFrame = mean_pl.to_pandas().set_index(_QUANTILE_).T
     mean_pd.plot.line(title='Average Cumulative Returns by Quantile', ax=ax, cmap='coolwarm', lw=1)
     ax.axvline(x=mean_pd.index.get_loc('+0'), c="r", ls="--", lw=1)
@@ -92,7 +92,7 @@ def plot_events_average(df_pl: pl.DataFrame, ax=None) -> None:
 
 def plot_events_count(df_pl: pl.DataFrame, axvlines: Sequence[str] = (), ax=None) -> None:
     """事件发生次数"""
-    df_pl = df_pl.group_by(by=[_DATE_]).count()
+    df_pl = df_pl.group_by(_DATE_).count()
     df_pd = df_pl.to_pandas().set_index(_DATE_)
     df_pd.plot.line(title='Distribution of events', ax=ax, lw=1, grid=True)
     ax.set_xlabel('')

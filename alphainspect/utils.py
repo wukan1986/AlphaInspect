@@ -61,7 +61,7 @@ def with_factor_quantile(df_pl: pl.DataFrame, factor: str, quantiles: int = 10, 
     if by_group:
         return df_pl.group_by(by=[_DATE_, _GROUP_]).map_groups(_func_cs)
     else:
-        return df_pl.group_by(by=[_DATE_]).map_groups(_func_cs)
+        return df_pl.group_by(_DATE_).map_groups(_func_cs)
 
 
 def cumulative_returns(returns: np.ndarray, weights: np.ndarray,
