@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import polars as pl
 import seaborn as sns
+from loguru import logger
 from matplotlib import pyplot as plt
 
 from alphainspect import _QUANTILE_, _DATE_, _ASSET_
@@ -9,14 +10,15 @@ from alphainspect.utils import cumulative_returns
 
 
 def calc_cum_return_by_quantile(df_pl: pl.DataFrame, fwd_ret_1: str, period: int = 5) -> pd.DataFrame:
-    df_pd = df_pl.to_pandas().set_index([_DATE_, _ASSET_])
-    q_max = int(df_pd[_QUANTILE_].max())
-    rr = df_pd[fwd_ret_1].unstack().fillna(0)  # 1日收益率
-    qq = df_pd[_QUANTILE_].unstack().fillna(-1)  # 因子所在分组编号
+    q_max = df_pl.select(pl.max(_QUANTILE_)).to_series(0)[0]
+    rr = df_pl.pivot(index=_DATE_, columns=_ASSET_, values=fwd_ret_1, aggregate_function='first', sort_columns=True).sort(_DATE_)
+    qq = df_pl.pivot(index=_DATE_, columns=_ASSET_, values=_QUANTILE_, aggregate_function='first', sort_columns=True).sort(_DATE_)
 
-    out = pd.DataFrame(index=rr.index)
-    rr = rr.to_numpy() + 1  # 日收益
-    qq = qq.to_numpy()  # 分组编号
+    out = pd.DataFrame(index=rr[_DATE_])
+    rr = rr.select(pl.exclude(_DATE_)).to_numpy() + 1  # 日收益
+    qq = qq.select(pl.exclude(_DATE_)).to_numpy()  # 分组编号
+    logger.info('累计收益准备数据')
+
     np.seterr(divide='ignore', invalid='ignore')
     for i in range(int(q_max) + 1):
         # 等权
@@ -27,18 +29,21 @@ def calc_cum_return_by_quantile(df_pl: pl.DataFrame, fwd_ret_1: str, period: int
         out[f'G{i}'] = cumulative_returns(rr, d, funds=period, freq=period)
     # !!!直接减是错误的，因为两资金是独立的，资金减少的一份由于资金不足对冲比例已经不再是1:1
     # out['spread'] = out[f'G{q_max}'] - out[f'G0']
+
+    logger.info('累计收益计算完成')
     return out
 
 
 def calc_cum_return_spread(df_pl: pl.DataFrame, fwd_ret_1: str, period: int = 5) -> pd.DataFrame:
-    df_pd = df_pl.to_pandas().set_index([_DATE_, _ASSET_])
-    q_max = int(df_pd[_QUANTILE_].max())
-    rr = df_pd[fwd_ret_1].unstack().fillna(0)  # 1日收益率
-    qq = df_pd[_QUANTILE_].unstack().fillna(-1)  # 因子所在分组编号
+    q_max = df_pl.select(pl.max(_QUANTILE_)).to_series(0)[0]
+    rr = df_pl.pivot(index=_DATE_, columns=_ASSET_, values=fwd_ret_1, aggregate_function='first', sort_columns=True).sort(_DATE_).fill_nan(0)
+    qq = df_pl.pivot(index=_DATE_, columns=_ASSET_, values=_QUANTILE_, aggregate_function='first', sort_columns=True).sort(_DATE_).fill_nan(-1)
 
-    out = pd.DataFrame(index=rr.index)
-    rr = rr.to_numpy() + 1  # 日收益
-    qq = qq.to_numpy()  # 分组编号
+    out = pd.DataFrame(index=rr[_DATE_])
+    rr = rr.select(pl.exclude(_DATE_)).to_numpy() + 1  # 日收益
+    qq = qq.select(pl.exclude(_DATE_)).to_numpy()  # 分组编号
+    logger.info('多空收益准备数据')
+
     np.seterr(divide='ignore', invalid='ignore')
 
     # 等权
@@ -63,7 +68,7 @@ def calc_cum_return_spread(df_pl: pl.DataFrame, fwd_ret_1: str, period: int = 5)
     out[f'G{q_max} w=+1'] = cumulative_returns(rr, b9, funds=period, freq=period)
     # 资金是共享的，每次调仓时需要将资金平分成两份
     out[f'G{q_max}~G0 w=+.5/-.5'] = cumulative_returns(rr, bb, funds=period, freq=period, init_cash=1.0)
-
+    logger.info('多空收益计算完成')
     return out
 
 

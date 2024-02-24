@@ -25,6 +25,7 @@ dependencies = [
     'statsmodels',
     'ipykernel',
     'nbconvert',
+    'loguru',
 ]
 dynamic = ["version"]
 
