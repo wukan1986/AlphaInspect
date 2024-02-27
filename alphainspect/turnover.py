@@ -4,9 +4,14 @@ from typing import Sequence
 import pandas as pd
 import polars as pl
 from matplotlib import pyplot as plt
+from polars import Expr
 
 from alphainspect import _QUANTILE_, _DATE_, _ASSET_
-from alphainspect.utils import auto_corr
+
+
+def auto_corr(a: str, period: int) -> Expr:
+    """自相关"""
+    return pl.corr(pl.col(a), pl.col(a).shift(period), method='spearman', ddof=0, propagate_nans=False)
 
 
 def calc_auto_correlation(df_pl: pl.DataFrame,

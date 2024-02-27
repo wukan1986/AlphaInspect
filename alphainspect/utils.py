@@ -7,19 +7,9 @@ from alphainspect import _QUANTILE_, _DATE_, _GROUP_
 from alphainspect._nb import _sub_portfolio_returns
 
 
-def rank_ic(a: str, b: str) -> Expr:
-    """RankIC"""
-    return pl.corr(a, b, method='spearman', ddof=0, propagate_nans=False)
-
-
-def auto_corr(a: str, period: int) -> Expr:
-    """自相关"""
-    return pl.corr(pl.col(a), pl.col(a).shift(period), method='spearman', ddof=0, propagate_nans=False)
-
-
 def _qcut(x: Series, q: int) -> Series:
     # TODO 等待提供
-    if x.null_count() == len(x):
+    if x.null_count() == x.len():
         return x
     else:
         return pd.qcut(x, q, labels=False, duplicates='drop')

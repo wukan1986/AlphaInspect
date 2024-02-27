@@ -1,13 +1,20 @@
-from typing import Sequence
+from typing import Sequence, Literal
 
+import numpy as np
 import pandas as pd
 import polars as pl
 import seaborn as sns
 from matplotlib import pyplot as plt
+from polars import Expr
+from sklearn.feature_selection import mutual_info_regression
 from statsmodels import api as sm
 
 from alphainspect import _DATE_
-from alphainspect.utils import rank_ic
+
+
+def rank_ic(a: str, b: str) -> Expr:
+    """RankIC"""
+    return pl.corr(a, b, method='spearman', ddof=0, propagate_nans=False)
 
 
 def calc_ic(df_pl: pl.DataFrame, factor: str, forward_returns: Sequence[str]) -> pl.DataFrame:
@@ -30,6 +37,30 @@ def calc_ic(df_pl: pl.DataFrame, factor: str, forward_returns: Sequence[str]) ->
     return df_pl.group_by(_DATE_).agg(
         # 这里没有换名，名字将与forward_returns对应
         [rank_ic(x, factor) for x in forward_returns]
+    ).sort(_DATE_)
+
+
+def mutual_info_func(xx):
+    yx = np.vstack(xx).T
+    # 跳过nan
+    mask = np.any(np.isnan(yx), axis=1)
+    yx_ = yx[~mask, :]
+    if len(yx_) <= 3:
+        return np.nan
+    # TODO 使用此函数是否合理？
+    mi = mutual_info_regression(yx_[:, 0].reshape(-1, 1), yx_[:, 1], n_neighbors=3)
+    return float(mi[0])
+
+
+def mutual_info(a: str, b: str) -> Expr:
+    """mutual_info"""
+    return pl.map_groups([a, b], lambda xx: mutual_info_func(xx))
+
+
+def calc_mi(df_pl: pl.DataFrame, factor: str, forward_returns: Sequence[str]) -> pl.DataFrame:
+    return df_pl.group_by(_DATE_).agg(
+        # 这里没有换名，名字将与forward_returns对应
+        [mutual_info(x, factor) for x in forward_returns]
     ).sort(_DATE_)
 
 
@@ -132,9 +163,15 @@ def plot_ic_heatmap(df_pl: pl.DataFrame, col: str,
 
 def create_ic_sheet(df_pl: pl.DataFrame, factor: str, forward_returns: Sequence[str],
                     *,
-                    axvlines=()):
+                    axvlines=(),
+                    method: Literal['rank_ic', 'mutual_info'] = 'rank_ic'):
     """生成IC图表"""
-    df_pl = calc_ic(df_pl, factor, forward_returns)
+    if method == 'mutual_info':
+        # 互信息，非线性因子。注意，有点慢
+        df_pl = calc_mi(df_pl, factor, forward_returns)
+    else:
+        # RankIC，线性因子
+        df_pl = calc_ic(df_pl, factor, forward_returns)
 
     for forward_return in forward_returns:
         fig, axes = plt.subplots(2, 2, figsize=(12, 9))

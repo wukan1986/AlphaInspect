@@ -30,7 +30,7 @@ forward_returns = ['RETURN_CC_1', 'RETURN_OO_1', 'RETURN_OO_2', 'RETURN_OO_5']  
 df_output = with_factor_quantile(df_output, factor, quantiles=10)
 # %%
 # IC统计
-create_ic_sheet(df_output, factor, forward_returns)
+create_ic_sheet(df_output, factor, forward_returns, method='rank_ic')
 # %%
 # 收益率统计
 create_returns_sheet(df_output, factor, forward_returns)
