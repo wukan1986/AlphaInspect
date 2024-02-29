@@ -38,14 +38,19 @@ def calc_ic(df_pl: pl.DataFrame, factor: str, forward_returns: Sequence[str]) ->
     return df_pl.group_by(_DATE_).agg(
         # 这里没有换名，名字将与forward_returns对应
         [rank_ic(x, factor) for x in forward_returns]
-    ).sort(_DATE_)
+    ).sort(_DATE_).fill_nan(None)
 
 
 def calc_ic2(df_pl: pl.DataFrame, factors: Sequence[str], forward_returns: Sequence[str]) -> pl.DataFrame:
     """多因子多收益的IC矩阵。方便部分用户统计大量因子信息"""
     return df_pl.group_by(_DATE_).agg(
         [rank_ic(x, y).alias(f'{x}__{y}') for x, y in itertools.product(factors, forward_returns)]
-    ).sort(_DATE_)
+    ).sort(_DATE_).fill_nan(None)
+
+
+def calc_ir(df_pl: pl.DataFrame):
+    """计算ir,需保证没有nan，只有null"""
+    return df_pl.select(pl.exclude(_DATE_).mean() / pl.exclude(_DATE_).std(ddof=0))
 
 
 def mutual_info_func(xx):
