@@ -21,6 +21,7 @@ def plot_quantile_returns_bar(df_pl: pl.DataFrame, factor: str, forward_returns:
     ax = df_pd.plot.bar(ax=ax)
     ax.set_title(f'{factor},Mean Return By Factor Quantile')
     ax.set_xlabel('')
+    # ax.bar_label(ax.containers[0])
 
 
 def plot_quantile_returns_box(df_pl: pl.DataFrame, factor: str, forward_returns: Sequence[str], *, ax=None):

@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import polars as pl
 import seaborn as sns
+from loguru import logger
 from matplotlib import pyplot as plt
 from polars import Expr
 from sklearn.feature_selection import mutual_info_regression
@@ -41,16 +42,18 @@ def calc_ic(df_pl: pl.DataFrame, factor: str, forward_returns: Sequence[str]) ->
     ).sort(_DATE_).fill_nan(None)
 
 
-def calc_ic2(df_pl: pl.DataFrame, factors: Sequence[str], forward_returns: Sequence[str]) -> pl.DataFrame:
-    """多因子多收益的IC矩阵。方便部分用户统计大量因子信息"""
-    return df_pl.group_by(_DATE_).agg(
-        [rank_ic(x, y).alias(f'{x}__{y}') for x, y in itertools.product(factors, forward_returns)]
-    ).sort(_DATE_).fill_nan(None)
+def calc_ic_mean(df_pl: pl.DataFrame):
+    return df_pl.select(pl.exclude(_DATE_).mean())
 
 
-def calc_ir(df_pl: pl.DataFrame):
+def calc_ic_ir(df_pl: pl.DataFrame):
     """计算ir,需保证没有nan，只有null"""
     return df_pl.select(pl.exclude(_DATE_).mean() / pl.exclude(_DATE_).std(ddof=0))
+
+
+def row_unstack(df_pl: pl.DataFrame, factors: Sequence[str], forward_returns: Sequence[str]) -> pd.DataFrame:
+    return pd.DataFrame(df_pl.to_numpy().reshape(len(factors), len(forward_returns)),
+                        index=factors, columns=forward_returns)
 
 
 def mutual_info_func(xx):
@@ -94,16 +97,17 @@ def plot_ic_ts(df_pl: pl.DataFrame, col: str,
         pl.col(col).rolling_mean(20).alias('sma_20'),
         pl.col(col).fill_nan(0).cum_sum().alias('cum_sum'),
     ])
-
-    df_pd = df_pl.to_pandas().dropna()
+    df_pd = df_pl.to_pandas().replace([-np.inf, np.inf], np.nan).dropna(subset='ic')
     s: pd.Series = df_pd['ic']
 
     ic = s.mean()
     ir = s.mean() / s.std()
     rate = (s.abs() > 0.02).value_counts(normalize=True).loc[True]
 
+    title = f"{col},IC={ic:0.4f},>0.02={rate:0.2f},IR={ir:0.4f}"
+    logger.info(title)
     ax1 = df_pd.plot.line(x=_DATE_, y=['ic', 'sma_20'], alpha=0.5, lw=1,
-                          title=f"{col},IC={ic:0.4f},>0.02={rate:0.2f},IR={ir:0.4f}",
+                          title=title,
                           ax=ax)
     ax2 = df_pd.plot.line(x=_DATE_, y=['cum_sum'], alpha=0.9, lw=1,
                           secondary_y='cum_sum', c='r',
@@ -123,7 +127,7 @@ def plot_ic_hist(df_pl: pl.DataFrame, col: str,
     --------
     >>> plot_ic_hist(df_pl, 'RETURN_OO_1')
     """
-    a = df_pl[col].to_pandas().dropna()
+    a = df_pl[col].to_pandas().replace([-np.inf, np.inf], np.nan).dropna()
 
     mean = a.mean()
     std = a.std()
@@ -139,7 +143,9 @@ def plot_ic_hist(df_pl: pl.DataFrame, col: str,
     ax.axvline(x=mean, c="r", ls="--", lw=1)
     ax.axvline(x=mean + std * 3, c="r", ls="--", lw=1)
     ax.axvline(x=mean - std * 3, c="r", ls="--", lw=1)
-    ax.set_title(f"{col},mean={mean:0.4f},std={std:0.4f},skew={skew:0.4f},kurt={kurt:0.4f}")
+    title = f"{col},mean={mean:0.4f},std={std:0.4f},skew={skew:0.4f},kurt={kurt:0.4f}"
+    logger.info(title)
+    ax.set_title(title)
     ax.set_xlabel('')
 
 
@@ -152,7 +158,7 @@ def plot_ic_qq(df_pl: pl.DataFrame, col: str,
     --------
     >>> plot_ic_qq(df_pl, 'RETURN_OO_1')
     """
-    a = df_pl[col].to_pandas().dropna()
+    a = df_pl[col].to_pandas().replace([-np.inf, np.inf], np.nan).dropna()
 
     sm.qqplot(a, fit=True, line='45', ax=ax)
 
@@ -195,3 +201,46 @@ def create_ic_sheet(df_pl: pl.DataFrame, factor: str, forward_returns: Sequence[
         plot_ic_heatmap(df_pl, forward_return, ax=axes[1, 1])
 
         fig.tight_layout()
+
+
+def calc_ic2(df_pl: pl.DataFrame, factors: Sequence[str], forward_returns: Sequence[str]) -> pl.DataFrame:
+    """多因子多收益的IC矩阵。方便部分用户统计大量因子信息"""
+    return df_pl.group_by(_DATE_).agg(
+        [rank_ic(x, y).alias(f'{x}__{y}') for x, y in itertools.product(factors, forward_returns)]
+    ).sort(_DATE_).fill_nan(None)
+
+
+def plot_ic2_heatmap(df_pd: pd.DataFrame,
+                     *,
+                     title='Mean IC',
+                     ax=None) -> None:
+    """多个IC的热力图"""
+    ax = sns.heatmap(df_pd, annot=True, cmap='RdYlGn_r', cbar=False, annot_kws={"size": 7}, ax=ax)
+    ax.set_title(title)
+    ax.set_xlabel('')
+
+
+def create_ic2_sheet(df_pl: pl.DataFrame, factors: Sequence[str], forward_returns: Sequence[str],
+                     *,
+                     axvlines=(), ):
+    df_pl = calc_ic2(df_pl, factors, forward_returns)
+    df_ic = calc_ic_mean(df_pl)
+    df_ir = calc_ic_ir(df_pl)
+    df_ic = row_unstack(df_ic, factors, forward_returns)
+    df_ir = row_unstack(df_ir, factors, forward_returns)
+    logger.info('Mean IC: {} \n{}', '=' * 60, df_ic)
+    logger.info('IC_IR: {} \n{}', '=' * 60, df_ir)
+
+    # 画ic与ir的热力图
+    fig, axes = plt.subplots(1, 2, figsize=(12, 9))
+    plot_ic2_heatmap(df_ic, title='Mean IC', ax=axes[0])
+    plot_ic2_heatmap(df_ir, title='IR', ax=axes[1])
+    fig.tight_layout()
+
+    # 画ic时序图
+    fig, axes = plt.subplots(len(factors), len(forward_returns), figsize=(12, 9))
+    axes = axes.flatten()
+    logger.info('IC TimeSeries: {}', '=' * 60)
+    for i, (x, y) in enumerate(itertools.product(factors, forward_returns)):
+        plot_ic_ts(df_pl, f'{x}__{y}', axvlines=axvlines, ax=axes[i])
+    fig.tight_layout()
