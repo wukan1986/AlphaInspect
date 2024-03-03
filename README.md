@@ -16,7 +16,7 @@ pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --upgrade alphainspect  
     2. factor因子值。放在因子发生时刻
     3. forward return远期收益率。计算收益率后需要回移到开始位置。为何是`shift(-n)收益率`，而不是`shift(n)因子`呢？
         1. 多期收期率。如果移动因子，会导致一个因子就要移动多次
-        2. 因子一般成百上千，全移动要的工作量非常大，而收期率则少很多
+        2. 因子一般成百上千，全移动要的工作量非常大，而收益率则少很多
     4. 推荐大家使用`expr_codegen`和`polars_ta`等项目
 2. 运行`examples/demo1.py`示例弹出简易图表
 3. 运行`examples/demo2.py`示例弹出完整图表
@@ -44,7 +44,7 @@ pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --upgrade alphainspect  
     1. `alphalens`设`periods=(1, 5, 10)`，然后内部计算持有1、5、10期数的收益率
     2. `alphainspect`由用户外部生成，用户可以比较同因子，不同交易方式产生的差异。例如：
         - `RETURN_OC_1`: T+1开盘入场，T+1收盘出场
-        - `RETURN_CC_1`: T+0开盘入场，T+1收盘出场
+        - `RETURN_CC_1`: T+0收盘入场，T+1收盘出场
         - `RETURN_OO_1`: T+1开盘入场，T+2开盘出场
         - `RETURN_OO_5`: T+1开盘入场，T+6开盘出场
 2. 不做去极值、标准化、行业中性化等操作
