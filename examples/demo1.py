@@ -28,7 +28,7 @@ forward_return = 'RETURN_OO_5'  # 计算因子IC用的5日收益率
 df_output = with_factor_quantile(df_output, factor, quantiles=10)
 
 # %%
-create_2x2_sheet(df_output, factor, forward_return, fwd_ret_1, period=period, axvlines=axvlines)
+create_2x2_sheet(df_output, factor, forward_return, fwd_ret_1, periods=(5, 10), axvlines=axvlines)
 # %%
 create_3x2_sheet(df_output, factor, forward_return, fwd_ret_1, period=period, axvlines=axvlines)
 

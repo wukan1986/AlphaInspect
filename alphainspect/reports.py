@@ -1,6 +1,7 @@
 import os
+from math import ceil
 from pathlib import Path
-from typing import Sequence
+from typing import Sequence, Tuple
 
 import polars as pl
 from loguru import logger
@@ -82,7 +83,7 @@ def create_2x2_sheet(df_pl: pl.DataFrame,
                      factor: str,
                      forward_return: str, fwd_ret_1: str,
                      *,
-                     period: int = 5,
+                     periods: Tuple = (2, 5, 10),
                      axvlines: Sequence[str] = ()) -> None:
     """画2*2的图表。含IC时序、IC直方图、IC热力图、累积收益图
 
@@ -94,24 +95,27 @@ def create_2x2_sheet(df_pl: pl.DataFrame,
         用于记算IC的远期收益率
     fwd_ret_1:str
         用于记算累计收益的1期远期收益率
-    period:int
+    periods:Tuple
         累计收益时持仓天数与资金份数
     axvlines
 
     """
-    fig, axes = plt.subplots(2, 2, figsize=(12, 9))
+    count = len(periods) + 3
+    fig, axes = plt.subplots(ceil(count / 2), 2, figsize=(12, 9), squeeze=False)
+    axes = axes.flatten()
 
     # 画IC信息
     logger.info('计算IC')
     df_ic = calc_ic(df_pl, factor, [forward_return])
-    plot_ic_ts(df_ic, forward_return, axvlines=axvlines, ax=axes[0, 0])
-    plot_ic_hist(df_ic, forward_return, ax=axes[0, 1])
-    plot_ic_heatmap(df_ic, forward_return, ax=axes[1, 0])
+    plot_ic_ts(df_ic, forward_return, axvlines=axvlines, ax=axes[0])
+    plot_ic_hist(df_ic, forward_return, ax=axes[1])
+    plot_ic_heatmap(df_ic, forward_return, ax=axes[2])
 
     # 画累计收益
     logger.info('计算累计收益')
-    df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period)
-    plot_quantile_portfolio(df_cum_ret, fwd_ret_1, period, axvlines=axvlines, ax=axes[1, 1])
+    for i, period in enumerate(periods):
+        df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period)
+        plot_quantile_portfolio(df_cum_ret, fwd_ret_1, period, axvlines=axvlines, ax=axes[3 + i])
 
     fig.tight_layout()
 

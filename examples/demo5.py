@@ -20,8 +20,7 @@ df_output = pl.read_parquet('data/data.parquet')
 period = 5
 axvlines = ('2020-01-01',)
 
-factors = ['STD_010', 'STD_020', 'SMA_010', 'SMA_020']  # 考察因子
-forward_returns = ['RETURN_CC_1', 'RETURN_OO_1', 'RETURN_OO_2', 'RETURN_OO_5']  # 同一因子，不同持有期对比
-
+factors = ['STD_010', 'STD_020', 'STD_060', 'SMA_010', 'SMA_020', 'SMA_060']  # 考察因子
+forward_returns = ['RETURN_CC_1', 'RETURN_OO_1', 'RETURN_OO_2', 'RETURN_OO_5', 'RETURN_OO_10']  # 同一因子，不同持有期对比
 create_ic2_sheet(df_output, factors, forward_returns)
 plt.show()

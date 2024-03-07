@@ -17,7 +17,7 @@ def calc_cum_return_by_quantile(df_pl: pl.DataFrame, fwd_ret_1: str, period: int
     out = pd.DataFrame(index=rr[_DATE_])
     rr = rr.select(pl.exclude(_DATE_)).to_numpy() + 1  # 日收益
     qq = qq.select(pl.exclude(_DATE_)).to_numpy()  # 分组编号
-    logger.info('累计收益准备数据')
+    logger.info('累计收益准备数据,period={}', period)
 
     np.seterr(divide='ignore', invalid='ignore')
     for i in range(int(q_max) + 1):
@@ -30,7 +30,7 @@ def calc_cum_return_by_quantile(df_pl: pl.DataFrame, fwd_ret_1: str, period: int
     # !!!直接减是错误的，因为两资金是独立的，资金减少的一份由于资金不足对冲比例已经不再是1:1
     # out['spread'] = out[f'G{q_max}'] - out[f'G0']
 
-    logger.info('累计收益计算完成 \n{}', out.iloc[-1])
+    logger.info('累计收益计算完成,period={}\n{}', period, out.iloc[-1])
     return out
 
 
@@ -42,7 +42,7 @@ def calc_cum_return_spread(df_pl: pl.DataFrame, fwd_ret_1: str, period: int = 5)
     out = pd.DataFrame(index=rr[_DATE_])
     rr = rr.select(pl.exclude(_DATE_)).to_numpy() + 1  # 日收益
     qq = qq.select(pl.exclude(_DATE_)).to_numpy()  # 分组编号
-    logger.info('多空收益准备数据')
+    logger.info('多空收益准备数据,period={}', period)
 
     np.seterr(divide='ignore', invalid='ignore')
 
@@ -68,7 +68,7 @@ def calc_cum_return_spread(df_pl: pl.DataFrame, fwd_ret_1: str, period: int = 5)
     out[f'G{q_max} w=+1'] = cumulative_returns(rr, b9, funds=period, freq=period)
     # 资金是共享的，每次调仓时需要将资金平分成两份
     out[f'G{q_max}~G0 w=+.5/-.5'] = cumulative_returns(rr, bb, funds=period, freq=period, init_cash=1.0)
-    logger.info('多空收益计算完成 \n{}', out.iloc[-1])
+    logger.info('多空收益计算完成,period={}\n{}', period, out.iloc[-1])
     return out
 
 

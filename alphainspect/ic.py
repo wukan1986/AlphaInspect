@@ -1,5 +1,6 @@
 import itertools
-from typing import Sequence, Literal
+from math import sqrt, floor, ceil
+from typing import Sequence, Literal, Dict
 
 import numpy as np
 import pandas as pd
@@ -42,13 +43,22 @@ def calc_ic(df_pl: pl.DataFrame, factor: str, forward_returns: Sequence[str]) ->
     ).sort(_DATE_).fill_nan(None)
 
 
-def calc_ic_mean(df_pl: pl.DataFrame):
+def calc_ic_mean(df_pl: pl.DataFrame) -> pl.DataFrame:
     return df_pl.select(pl.exclude(_DATE_).mean())
 
 
-def calc_ic_ir(df_pl: pl.DataFrame):
+def calc_ic_ir(df_pl: pl.DataFrame) -> pl.DataFrame:
     """计算ir,需保证没有nan，只有null"""
     return df_pl.select(pl.exclude(_DATE_).mean() / pl.exclude(_DATE_).std(ddof=0))
+
+
+def calc_ic_corr(df_pl: pl.DataFrame, factors: Sequence[str], forward_returns: Sequence[str]) -> Dict[str, pd.DataFrame]:
+    corrs = {}
+    for returns in forward_returns:
+        cut = len(returns) + 2
+        columns = [f'{x}__{returns}' for x in factors]
+        corrs[returns] = df_pl.select(columns).select(pl.all().name.map(lambda x: x[:-cut])).to_pandas().corr()
+    return corrs
 
 
 def row_unstack(df_pl: pl.DataFrame, factors: Sequence[str], forward_returns: Sequence[str]) -> pd.DataFrame:
@@ -56,7 +66,7 @@ def row_unstack(df_pl: pl.DataFrame, factors: Sequence[str], forward_returns: Se
                         index=factors, columns=forward_returns)
 
 
-def mutual_info_func(xx):
+def mutual_info_func(xx) -> float:
     yx = np.vstack(xx).T
     # 跳过nan
     mask = np.any(np.isnan(yx), axis=1)
@@ -130,7 +140,7 @@ def plot_ic_hist(df_pl: pl.DataFrame, col: str,
     a = df_pl[col].to_pandas().replace([-np.inf, np.inf], np.nan).dropna()
 
     mean = a.mean()
-    std = a.std()
+    std = a.std(ddof=0)
     skew = a.skew()
     kurt = a.kurt()
 
@@ -237,8 +247,20 @@ def create_ic2_sheet(df_pl: pl.DataFrame, factors: Sequence[str], forward_return
     plot_ic2_heatmap(df_ir, title='IR', ax=axes[1])
     fig.tight_layout()
 
+    # IC之间相关性，可用于检查多重共线性
+    corrs = calc_ic_corr(df_pl, factors, forward_returns)
+    len_sqrt = sqrt(len(corrs))
+    row, col = ceil(len_sqrt), floor(len_sqrt)
+    if row * col < len(corrs):
+        col += 1
+    fig, axes = plt.subplots(row, col, figsize=(12, 9), squeeze=False)
+    axes = axes.flatten()
+    for i, (k, v) in enumerate(corrs.items()):
+        plot_ic2_heatmap(v, title=f'{k} IC Corr', ax=axes[i])
+    fig.tight_layout()
+
     # 画ic时序图
-    fig, axes = plt.subplots(len(factors), len(forward_returns), figsize=(12, 9))
+    fig, axes = plt.subplots(len(factors), len(forward_returns), figsize=(12, 9), squeeze=False)
     axes = axes.flatten()
     logger.info('IC TimeSeries: {}', '=' * 60)
     for i, (x, y) in enumerate(itertools.product(factors, forward_returns)):
