@@ -8,7 +8,7 @@ from loguru import logger
 from matplotlib import pyplot as plt
 
 from alphainspect import _QUANTILE_
-from alphainspect.ic import calc_ic, plot_ic_ts, plot_ic_hist, plot_ic_heatmap
+from alphainspect.ic import calc_ic, plot_ic_ts, plot_ic_hist, plot_ic_heatmap_monthly
 from alphainspect.portfolio import calc_cum_return_by_quantile, plot_quantile_portfolio
 from alphainspect.turnover import calc_auto_correlation, calc_quantile_turnover, plot_factor_auto_correlation, plot_turnover_quantile
 
@@ -106,10 +106,11 @@ def create_2x2_sheet(df_pl: pl.DataFrame,
 
     # 画IC信息
     logger.info('计算IC')
-    df_ic = calc_ic(df_pl, factor, [forward_return])
-    plot_ic_ts(df_ic, forward_return, axvlines=axvlines, ax=axes[0])
-    plot_ic_hist(df_ic, forward_return, ax=axes[1])
-    plot_ic_heatmap(df_ic, forward_return, ax=axes[2])
+    df_ic = calc_ic(df_pl, [factor], [forward_return])
+    col = df_ic.columns[1]
+    plot_ic_ts(df_ic, col, axvlines=axvlines, ax=axes[0])
+    plot_ic_hist(df_ic, col, ax=axes[1])
+    plot_ic_heatmap_monthly(df_ic, col, ax=axes[2])
 
     # 画累计收益
     logger.info('计算累计收益')
@@ -148,10 +149,11 @@ def create_3x2_sheet(df_pl: pl.DataFrame,
 
     # 画IC信息
     logger.info('计算IC')
-    df_ic = calc_ic(df_pl, factor, [forward_return])
-    plot_ic_ts(df_ic, forward_return, axvlines=axvlines, ax=axes[0, 0])
-    plot_ic_hist(df_ic, forward_return, ax=axes[0, 1])
-    plot_ic_heatmap(df_ic, forward_return, ax=axes[1, 0])
+    df_ic = calc_ic(df_pl, [factor], [forward_return])
+    col = df_ic.columns[1]
+    plot_ic_ts(df_ic, col, axvlines=axvlines, ax=axes[0, 0])
+    plot_ic_hist(df_ic, col, ax=axes[0, 1])
+    plot_ic_heatmap_monthly(df_ic, col, ax=axes[1, 0])
 
     # 画净值曲线
     logger.info('计算累计收益')

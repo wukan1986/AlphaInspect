@@ -1,12 +1,11 @@
 import numpy as np
 import pandas as pd
 import polars as pl
-import seaborn as sns
 from loguru import logger
 from matplotlib import pyplot as plt
 
 from alphainspect import _QUANTILE_, _DATE_, _ASSET_
-from alphainspect.utils import cumulative_returns
+from alphainspect.utils import cumulative_returns, plot_heatmap
 
 
 def calc_cum_return_by_quantile(df_pl: pl.DataFrame, fwd_ret_1: str, period: int = 5) -> pd.DataFrame:
@@ -92,9 +91,7 @@ def plot_portfolio_heatmap(df_pd: pd.DataFrame,
     out['last'] = df_pd[group]
     out = out.groupby(by=['year', 'month']).agg({'first': 'first', 'last': 'last'})
     out['cum_ret'] = out['last'] / out['first'] - 1
-    ax = sns.heatmap(out['cum_ret'].unstack(), annot=True, cmap='RdYlGn_r', cbar=False, annot_kws={"size": 7}, ax=ax)
-    ax.set_title(f"{group},Monthly Return")
-    ax.set_xlabel('')
+    plot_heatmap(out['cum_ret'].unstack(), title=f"{group},Monthly Return", ax=ax)
 
 
 def create_portfolio_sheet(df_pl: pl.DataFrame,

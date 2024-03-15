@@ -1,7 +1,10 @@
+import math
+
 import numpy as np
 import pandas as pd
 import polars as pl
-from polars import Series, Expr, Int16
+import seaborn as sns
+from polars import Series, Expr, Int16, selectors as cs
 
 from alphainspect import _QUANTILE_, _DATE_, _GROUP_
 from alphainspect._nb import _sub_portfolio_returns
@@ -143,3 +146,33 @@ def cumulative_returns(returns: np.ndarray, weights: np.ndarray,
             return out.mean(axis=1) - (benchmark + 1).cumprod()
     else:
         return out
+
+
+def plot_heatmap(df_pd: pd.DataFrame,
+                 *,
+                 title='Mean IC',
+                 ax=None) -> None:
+    """多个IC的热力图"""
+    # https://matplotlib.org/2.0.2/examples/color/colormaps_reference.html
+    ax = sns.heatmap(df_pd, annot=True, cmap='RdYlGn_r', cbar=False, annot_kws={"size": 7}, ax=ax)
+    ax.set_title(title)
+    ax.set_xlabel('')
+
+
+def get_row_col(count: int):
+    """通过图总数，得到二维数量"""
+    len_sqrt = math.sqrt(count)
+    row, col = math.ceil(len_sqrt), math.floor(len_sqrt)
+    if row * col < count:
+        col += 1
+    return row, col
+
+
+def select_by_suffix(df_pl: pl.DataFrame, name: str) -> pl.DataFrame:
+    """选择指定后缀的所有因子"""
+    return df_pl.select(cs.ends_with(name).name.map(lambda x: x[:-len(name)]))
+
+
+def select_by_prefix(df_pl: pl.DataFrame, name: str) -> pl.DataFrame:
+    """选择指定前缀的所有因子"""
+    return df_pl.select(cs.starts_with(name).name.map(lambda x: x[len(name):]))

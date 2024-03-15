@@ -12,7 +12,7 @@ sys.path.append(pwd)
 import matplotlib.pyplot as plt
 import polars as pl
 
-from alphainspect.ic import create_ic_sheet
+from alphainspect.ic import create_ic1_sheet
 from alphainspect.portfolio import create_portfolio_sheet
 from alphainspect.returns import create_returns_sheet
 from alphainspect.turnover import create_turnover_sheet
@@ -27,10 +27,12 @@ factor = 'STD_010'  # 考察因子
 forward_returns = ['RETURN_CC_1', 'RETURN_OO_1', 'RETURN_OO_2', 'RETURN_OO_5']  # 同一因子，不同持有期对比
 
 # %%
-df_output = with_factor_quantile(df_output, factor, quantiles=10)
+
 # %%
 # IC统计
-create_ic_sheet(df_output, factor, forward_returns, method='rank_ic')
+create_ic1_sheet(df_output, factor, forward_returns, method="rank_ic")
+
+df_output = with_factor_quantile(df_output, factor, quantiles=10)
 # %%
 # 收益率统计
 create_returns_sheet(df_output, factor, forward_returns)

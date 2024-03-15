@@ -26,6 +26,8 @@ dependencies = [
     'ipykernel',
     'nbconvert',
     'loguru',
+    'scipy',
+    'scikit-learn',
 ]
 dynamic = ["version"]
 
