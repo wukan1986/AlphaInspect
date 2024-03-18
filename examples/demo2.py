@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import polars as pl
 
 from alphainspect.ic import create_ic1_sheet
-from alphainspect.portfolio import create_portfolio_sheet
+from alphainspect.portfolio import create_portfolio1_sheet
 from alphainspect.returns import create_returns_sheet
 from alphainspect.turnover import create_turnover_sheet
 from alphainspect.utils import with_factor_quantile
@@ -38,7 +38,7 @@ df_output = with_factor_quantile(df_output, factor, quantiles=10)
 create_returns_sheet(df_output, factor, forward_returns)
 # %%
 fwd_ret_1 = 'RETURN_OO_1'  # 计算净值必需提供1日收益率
-create_portfolio_sheet(df_output, fwd_ret_1, period=5, axvlines=axvlines)
+create_portfolio1_sheet(df_output, fwd_ret_1, period=5, axvlines=axvlines)
 create_turnover_sheet(df_output, factor, periods=(1, 5, 10, 20), axvlines=axvlines)
 
 plt.show()
