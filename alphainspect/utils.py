@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import polars as pl
 import seaborn as sns
+from loguru import logger
 from polars import selectors as cs
 
 from alphainspect import _QUANTILE_, _DATE_, _GROUP_
@@ -172,3 +173,34 @@ def select_by_suffix(df_pl: pl.DataFrame, name: str) -> pl.DataFrame:
 def select_by_prefix(df_pl: pl.DataFrame, name: str) -> pl.DataFrame:
     """选择指定前缀的所有因子"""
     return df_pl.select(cs.starts_with(name).name.map(lambda x: x[len(name):]))
+
+
+def plot_hist(df_pl: pl.DataFrame, col: str,
+              *,
+              ax=None) -> None:
+    """直方图
+
+    Examples
+    --------
+    >>> plot_hist(df_pl, 'RETURN_OO_1')
+    """
+    a = df_pl[col].to_pandas().replace([-np.inf, np.inf], np.nan).dropna()
+
+    mean = a.mean()
+    std = a.std(ddof=0)
+    skew = a.skew()
+    kurt = a.kurt()
+
+    ax = sns.histplot(a,
+                      bins=50, kde=True,
+                      stat="density", kde_kws=dict(cut=3),
+                      alpha=.4, edgecolor=(1, 1, 1, .4),
+                      ax=ax)
+
+    ax.axvline(x=mean, c="r", ls="--", lw=1)
+    ax.axvline(x=mean + std * 3, c="r", ls="--", lw=1)
+    ax.axvline(x=mean - std * 3, c="r", ls="--", lw=1)
+    title = f"{col},mean={mean:0.4f},std={std:0.4f},skew={skew:0.4f},kurt={kurt:0.4f}"
+    logger.info(title)
+    ax.set_title(title)
+    ax.set_xlabel('')

@@ -4,7 +4,6 @@ from typing import Sequence, Literal
 import numpy as np
 import pandas as pd
 import polars as pl
-import seaborn as sns
 from loguru import logger
 from matplotlib import pyplot as plt
 from polars import Expr
@@ -13,7 +12,7 @@ from sklearn.feature_selection import mutual_info_regression
 from statsmodels import api as sm
 
 from alphainspect import _DATE_
-from alphainspect.utils import plot_heatmap, get_row_col, select_by_suffix
+from alphainspect.utils import plot_heatmap, get_row_col, select_by_suffix, plot_hist
 
 
 def rank_ic(a: str, b: str) -> Expr:
@@ -113,37 +112,6 @@ def plot_ic_ts(df_pl: pl.DataFrame, col: str,
         ax1.axvline(x=v, c="b", ls="--", lw=1)
 
 
-def plot_ic_hist(df_pl: pl.DataFrame, col: str,
-                 *,
-                 ax=None) -> None:
-    """IC直方图
-
-    Examples
-    --------
-    >>> plot_ic_hist(df_pl, 'RETURN_OO_1')
-    """
-    a = df_pl[col].to_pandas().replace([-np.inf, np.inf], np.nan).dropna()
-
-    mean = a.mean()
-    std = a.std(ddof=0)
-    skew = a.skew()
-    kurt = a.kurt()
-
-    ax = sns.histplot(a,
-                      bins=50, kde=True,
-                      stat="density", kde_kws=dict(cut=3),
-                      alpha=.4, edgecolor=(1, 1, 1, .4),
-                      ax=ax)
-
-    ax.axvline(x=mean, c="r", ls="--", lw=1)
-    ax.axvline(x=mean + std * 3, c="r", ls="--", lw=1)
-    ax.axvline(x=mean - std * 3, c="r", ls="--", lw=1)
-    title = f"{col},mean={mean:0.4f},std={std:0.4f},skew={skew:0.4f},kurt={kurt:0.4f}"
-    logger.info(title)
-    ax.set_title(title)
-    ax.set_xlabel('')
-
-
 def plot_ic_qq(df_pl: pl.DataFrame, col: str,
                *,
                ax=None) -> None:
@@ -185,7 +153,7 @@ def create_ic1_sheet(df_pl: pl.DataFrame, factor: str, forward_returns: Sequence
         fig, axes = plt.subplots(2, 2, figsize=(12, 9))
 
         plot_ic_ts(df_pl, col, axvlines=axvlines, ax=axes[0, 0])
-        plot_ic_hist(df_pl, col, ax=axes[0, 1])
+        plot_hist(df_pl, col, ax=axes[0, 1])
         plot_ic_qq(df_pl, col, ax=axes[1, 0])
         plot_ic_heatmap_monthly(df_pl, col, ax=axes[1, 1])
 

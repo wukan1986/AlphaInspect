@@ -8,7 +8,8 @@ from loguru import logger
 from matplotlib import pyplot as plt
 
 from alphainspect import _QUANTILE_
-from alphainspect.ic import calc_ic, plot_ic_ts, plot_ic_hist, plot_ic_heatmap_monthly
+from alphainspect.ic import calc_ic, plot_ic_ts, plot_ic_heatmap_monthly
+from alphainspect.utils import plot_hist
 from alphainspect.portfolio import calc_cum_return_by_quantile, plot_quantile_portfolio
 from alphainspect.turnover import calc_auto_correlation, calc_quantile_turnover, plot_factor_auto_correlation, plot_turnover_quantile
 
@@ -85,6 +86,7 @@ def create_2x2_sheet(df_pl: pl.DataFrame,
                      *,
                      period: int = 5,
                      factor_quantile: str = _QUANTILE_,
+                     figsize=(12, 9),
                      axvlines: Sequence[str] = ()) -> None:
     """画2*2的图表。含IC时序、IC直方图、IC热力图、累积收益图
 
@@ -99,11 +101,12 @@ def create_2x2_sheet(df_pl: pl.DataFrame,
     period: int
         累计收益时持仓天数与资金份数
     factor_quantile:str
+    figsize
 
     axvlines
 
     """
-    fig, axes = plt.subplots(2, 2, figsize=(12, 9), squeeze=False)
+    fig, axes = plt.subplots(2, 2, figsize=figsize, squeeze=False)
     axes = axes.flatten()
 
     # 画IC信息
@@ -114,7 +117,7 @@ def create_2x2_sheet(df_pl: pl.DataFrame,
     plot_ic_heatmap_monthly(df_ic, col, ax=axes[1])
 
     # 画因子直方图
-    plot_ic_hist(df_pl, factor, ax=axes[2])
+    plot_hist(df_pl, factor, ax=axes[2])
 
     # 画累计收益
     logger.info('计算累计收益')
@@ -130,6 +133,7 @@ def create_2x3_sheet(df_pl: pl.DataFrame,
                      *,
                      periods: Tuple = (2, 5, 10),
                      factor_quantile: str = _QUANTILE_,
+                     figsize=(12, 9),
                      axvlines: Sequence[str] = ()) -> None:
     """画2*2的图表。含IC时序、IC直方图、IC热力图、累积收益图
 
@@ -149,7 +153,7 @@ def create_2x3_sheet(df_pl: pl.DataFrame,
 
     """
     count = len(periods) + 3
-    fig, axes = plt.subplots(2, ceil(count / 2), figsize=(12, 9), squeeze=False)
+    fig, axes = plt.subplots(2, ceil(count / 2), figsize=figsize, squeeze=False)
     axes = axes.flatten()
 
     # 画IC信息
@@ -157,7 +161,7 @@ def create_2x3_sheet(df_pl: pl.DataFrame,
     df_ic = calc_ic(df_pl, [factor], [forward_return])
     col = df_ic.columns[1]
     plot_ic_ts(df_ic, col, axvlines=axvlines, ax=axes[0])
-    plot_ic_hist(df_ic, col, ax=axes[1])
+    plot_hist(df_ic, col, ax=axes[1])
     plot_ic_heatmap_monthly(df_ic, col, ax=axes[2])
 
     # 画累计收益
@@ -176,6 +180,7 @@ def create_3x2_sheet(df_pl: pl.DataFrame,
                      period: int = 5,
                      factor_quantile: str = _QUANTILE_,
                      periods: Sequence[int] = (1, 5, 10, 20),
+                     figsize=(12, 14),
                      axvlines: Sequence[str] = ()) -> None:
     """画2*3图
 
@@ -196,14 +201,14 @@ def create_3x2_sheet(df_pl: pl.DataFrame,
     axvlines
 
     """
-    fig, axes = plt.subplots(3, 2, figsize=(12, 14))
+    fig, axes = plt.subplots(3, 2, figsize=figsize)
 
     # 画IC信息
     logger.info('计算IC')
     df_ic = calc_ic(df_pl, [factor], [forward_return])
     col = df_ic.columns[1]
     plot_ic_ts(df_ic, col, axvlines=axvlines, ax=axes[0, 0])
-    plot_ic_hist(df_ic, col, ax=axes[0, 1])
+    plot_hist(df_ic, col, ax=axes[0, 1])
     plot_ic_heatmap_monthly(df_ic, col, ax=axes[1, 0])
 
     # 画净值曲线
