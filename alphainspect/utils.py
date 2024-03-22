@@ -4,27 +4,21 @@ import numpy as np
 import pandas as pd
 import polars as pl
 import seaborn as sns
-from polars import Series, Expr, Int16, selectors as cs
+from polars import selectors as cs
 
 from alphainspect import _QUANTILE_, _DATE_, _GROUP_
 from alphainspect._nb import _sub_portfolio_returns
 
 
-def _qcut(x: Series, q: int) -> Series:
-    # TODO 等待提供
-    if x.null_count() == x.len():
-        return x
-    else:
-        return pd.qcut(x, q, labels=False, duplicates='drop')
-
-
-def cs_bucket(x: Expr, q: int = 10) -> Expr:
-    """Convert float values into indexes for user-specified buckets. Bucket is useful for creating group values, which can be passed to group operators as input."""
+def rank_qcut(x: pl.Expr, q: int = 10) -> pl.Expr:
+    """结果与qcut基本一样，速度快三倍"""
     # TODO 等官方提供原生功能
-    return x.map_batches(lambda x1: Series(_qcut(x1, q), nan_to_null=True, dtype=Int16))
+    a = x.rank(method='min') - 1.001
+    b = pl.max_horizontal(x.count() - 1, 1)
+    return (a / b * q).cast(pl.Int16)
 
 
-def with_factor_quantile(df_pl: pl.DataFrame, factor: str, quantiles: int = 10, by_group: bool = False) -> pl.DataFrame:
+def with_factor_quantile(df_pl: pl.DataFrame, factor: str, quantiles: int = 10, by_group: bool = False, factor_quantile: str = _QUANTILE_) -> pl.DataFrame:
     """添加因子分位数信息
 
     Parameters
@@ -36,6 +30,8 @@ def with_factor_quantile(df_pl: pl.DataFrame, factor: str, quantiles: int = 10, 
         分层数
     by_group:bool
         是否分组
+    factor_quantile:str
+        分组名
 
     Returns
     -------
@@ -45,7 +41,7 @@ def with_factor_quantile(df_pl: pl.DataFrame, factor: str, quantiles: int = 10, 
 
     def _func_cs(df: pl.DataFrame):
         return df.with_columns([
-            cs_bucket(pl.col(factor), quantiles).alias(_QUANTILE_),
+            rank_qcut(pl.col(factor), quantiles).alias(factor_quantile),
         ])
 
     # 将nan改成null
