@@ -8,11 +8,11 @@ from alphainspect import _QUANTILE_, _DATE_, _ASSET_, _WEIGHT_
 from alphainspect.utils import cumulative_returns, plot_heatmap
 
 
-def calc_cum_return_by_quantile(df_pl: pl.DataFrame, fwd_ret_1: str, period: int = 5) -> pd.DataFrame:
+def calc_cum_return_by_quantile(df_pl: pl.DataFrame, fwd_ret_1: str, period: int = 5, factor_quantile: str = _QUANTILE_) -> pd.DataFrame:
     """分层计算收益。分成N层，层内等权"""
-    q_max = df_pl.select(pl.max(_QUANTILE_)).to_series(0)[0]
+    q_max = df_pl.select(pl.max(factor_quantile)).to_series(0)[0]
     rr = df_pl.pivot(index=_DATE_, columns=_ASSET_, values=fwd_ret_1, aggregate_function='first', sort_columns=True).sort(_DATE_)
-    qq = df_pl.pivot(index=_DATE_, columns=_ASSET_, values=_QUANTILE_, aggregate_function='first', sort_columns=True).sort(_DATE_)
+    qq = df_pl.pivot(index=_DATE_, columns=_ASSET_, values=factor_quantile, aggregate_function='first', sort_columns=True).sort(_DATE_)
 
     out = pd.DataFrame(index=rr[_DATE_])
     rr = rr.select(pl.exclude(_DATE_)).to_numpy() + 1  # 日收益
@@ -33,12 +33,12 @@ def calc_cum_return_by_quantile(df_pl: pl.DataFrame, fwd_ret_1: str, period: int
     return out
 
 
-def calc_cum_return_spread(df_pl: pl.DataFrame, fwd_ret_1: str, period: int = 5) -> pd.DataFrame:
+def calc_cum_return_spread(df_pl: pl.DataFrame, fwd_ret_1: str, period: int = 5, factor_quantile: str = _QUANTILE_) -> pd.DataFrame:
     """分层计算收益。分成N层，层内等权。
     取Top层和Bottom层。比较不同的计算方法多空收益的区别"""
-    q_max = df_pl.select(pl.max(_QUANTILE_)).to_series(0)[0]
+    q_max = df_pl.select(pl.max(factor_quantile)).to_series(0)[0]
     rr = df_pl.pivot(index=_DATE_, columns=_ASSET_, values=fwd_ret_1, aggregate_function='first', sort_columns=True).sort(_DATE_).fill_nan(0)
-    qq = df_pl.pivot(index=_DATE_, columns=_ASSET_, values=_QUANTILE_, aggregate_function='first', sort_columns=True).sort(_DATE_).fill_nan(-1)
+    qq = df_pl.pivot(index=_DATE_, columns=_ASSET_, values=factor_quantile, aggregate_function='first', sort_columns=True).sort(_DATE_).fill_nan(-1)
 
     out = pd.DataFrame(index=rr[_DATE_])
     rr = rr.select(pl.exclude(_DATE_)).to_numpy() + 1  # 日收益
@@ -121,11 +121,12 @@ def plot_portfolio_heatmap_monthly(df_pd: pd.DataFrame,
 def create_portfolio1_sheet(df_pl: pl.DataFrame,
                             fwd_ret_1: str,
                             period=5,
+                            factor_quantile: str = _QUANTILE_,
                             *,
                             axvlines=()) -> None:
     """分层累计收益图"""
     # 分层累计收益
-    df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period)
+    df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period, factor_quantile)
 
     fig, axes = plt.subplots(2, 1, figsize=(12, 9))
     plot_quantile_portfolio(df_cum_ret, fwd_ret_1, period, axvlines=axvlines, ax=axes[0])
@@ -137,7 +138,7 @@ def create_portfolio1_sheet(df_pl: pl.DataFrame,
     fig.tight_layout()
 
     # 多空累计收益
-    df_spread = calc_cum_return_spread(df_pl, fwd_ret_1, period)
+    df_spread = calc_cum_return_spread(df_pl, fwd_ret_1, period, factor_quantile=factor_quantile)
     fig, axes = plt.subplots(1, 1, figsize=(12, 9))
     plot_quantile_portfolio(df_spread, fwd_ret_1, period, axvlines=axvlines, ax=axes)
     fig.tight_layout()

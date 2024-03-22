@@ -59,17 +59,17 @@ def with_around_price(df_pl: pl.DataFrame, price: str, periods_before: int = 5, 
     return df_pl.group_by(_ASSET_).map_groups(_func_ts).with_columns(_COL_AROUND_.fill_nan(None))
 
 
-def plot_events_errorbar(df_pl: pl.DataFrame, ax=None) -> None:
+def plot_events_errorbar(df_pl: pl.DataFrame, factor_quantile: str = _QUANTILE_, ax=None) -> None:
     """事件前后误差条"""
-    min_max = df_pl.select(pl.min(_QUANTILE_).alias('min'), pl.max(_QUANTILE_).alias('max'))
+    min_max = df_pl.select(pl.min(factor_quantile).alias('min'), pl.max(factor_quantile).alias('max'))
     min_max = min_max.to_dicts()[0]
     _min, _max = min_max['min'], min_max['max']
 
-    df_pl = df_pl.select(_QUANTILE_, _COL_AROUND_)
-    mean_pl = df_pl.group_by(_QUANTILE_).agg(pl.mean(_REG_AROUND_)).sort(_QUANTILE_)
-    mean_pd: pd.DataFrame = mean_pl.to_pandas().set_index(_QUANTILE_).T
-    std_pl = df_pl.group_by(_QUANTILE_).agg(pl.std(_REG_AROUND_)).sort(_QUANTILE_)
-    std_pd: pd.DataFrame = std_pl.to_pandas().set_index(_QUANTILE_).T
+    df_pl = df_pl.select(factor_quantile, _COL_AROUND_)
+    mean_pl = df_pl.group_by(factor_quantile).agg(pl.mean(_REG_AROUND_)).sort(factor_quantile)
+    mean_pd: pd.DataFrame = mean_pl.to_pandas().set_index(factor_quantile).T
+    std_pl = df_pl.group_by(factor_quantile).agg(pl.std(_REG_AROUND_)).sort(factor_quantile)
+    std_pd: pd.DataFrame = std_pl.to_pandas().set_index(factor_quantile).T
 
     a = mean_pd.loc[:, _max]
     b = std_pd.loc[:, _max]
@@ -80,11 +80,11 @@ def plot_events_errorbar(df_pl: pl.DataFrame, ax=None) -> None:
     ax.set_title(f'Quantile {_max} errorbar')
 
 
-def plot_events_average(df_pl: pl.DataFrame, ax=None) -> None:
+def plot_events_average(df_pl: pl.DataFrame, factor_quantile: str = _QUANTILE_, ax=None) -> None:
     """事件前后标准化后平均价"""
-    df_pl = df_pl.select(_QUANTILE_, _COL_AROUND_)
-    mean_pl = df_pl.group_by(_QUANTILE_).agg(pl.mean(_REG_AROUND_)).sort(_QUANTILE_)
-    mean_pd: pd.DataFrame = mean_pl.to_pandas().set_index(_QUANTILE_).T
+    df_pl = df_pl.select(factor_quantile, _COL_AROUND_)
+    mean_pl = df_pl.group_by(factor_quantile).agg(pl.mean(_REG_AROUND_)).sort(factor_quantile)
+    mean_pd: pd.DataFrame = mean_pl.to_pandas().set_index(factor_quantile).T
     mean_pd.plot.line(title='Average Cumulative Returns by Quantile', ax=ax, cmap='coolwarm', lw=1)
     ax.axvline(x=mean_pd.index.get_loc('+0'), c="r", ls="--", lw=1)
     ax.set_xlabel('')
@@ -100,14 +100,14 @@ def plot_events_count(df_pl: pl.DataFrame, axvlines: Sequence[str] = (), ax=None
         ax.axvline(x=v, c="b", ls="--", lw=1)
 
 
-def create_events_sheet(df_pl: pl.DataFrame, condition: pl.Expr, axvlines: Sequence[str] = ()):
+def create_events_sheet(df_pl: pl.DataFrame, condition: pl.Expr, factor_quantile: str = _QUANTILE_, axvlines: Sequence[str] = ()):
     # 一定要过滤空值
-    df_pl = df_pl.filter(pl.col(_QUANTILE_).is_not_null()).filter(condition)
+    df_pl = df_pl.filter(pl.col(factor_quantile).is_not_null()).filter(condition)
 
     fig, axes = plt.subplots(3, 1, figsize=(9, 12))
 
     plot_events_count(df_pl, ax=axes[0], axvlines=axvlines)
-    plot_events_average(df_pl, ax=axes[1])
-    plot_events_errorbar(df_pl, ax=axes[2])
+    plot_events_average(df_pl, factor_quantile=factor_quantile, ax=axes[1])
+    plot_events_errorbar(df_pl, factor_quantile=factor_quantile, ax=axes[2])
 
     fig.tight_layout()

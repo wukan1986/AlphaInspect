@@ -32,14 +32,14 @@ forward_returns = ['RETURN_CC_1', 'RETURN_OO_1', 'RETURN_OO_2', 'RETURN_OO_5']  
 # IC统计
 create_ic1_sheet(df_output, factor, forward_returns, method="rank_ic")
 
-df_output = with_factor_quantile(df_output, factor, quantiles=10)
+df_output = with_factor_quantile(df_output, factor, quantiles=10, factor_quantile='_fq_1')
 # %%
 # 收益率统计
-create_returns_sheet(df_output, factor, forward_returns)
+create_returns_sheet(df_output, factor, forward_returns, factor_quantile='_fq_1')
 # %%
 fwd_ret_1 = 'RETURN_OO_1'  # 计算净值必需提供1日收益率
-create_portfolio1_sheet(df_output, fwd_ret_1, period=5, axvlines=axvlines)
-create_turnover_sheet(df_output, factor, periods=(1, 5, 10, 20), axvlines=axvlines)
+create_portfolio1_sheet(df_output, fwd_ret_1, period=5, factor_quantile='_fq_1', axvlines=axvlines)
+create_turnover_sheet(df_output, factor, periods=(1, 5, 10, 20), factor_quantile='_fq_1', axvlines=axvlines)
 
 plt.show()
 
