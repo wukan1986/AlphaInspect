@@ -177,6 +177,7 @@ def select_by_prefix(df_pl: pl.DataFrame, name: str) -> pl.DataFrame:
 
 def plot_hist(df_pl: pl.DataFrame, col: str,
               *,
+              kde: bool = False,  # 启用kde后速度慢了非常多
               ax=None) -> None:
     """直方图
 
@@ -192,7 +193,7 @@ def plot_hist(df_pl: pl.DataFrame, col: str,
     kurt = a.kurt()
 
     ax = sns.histplot(a,
-                      bins=50, kde=True,
+                      bins=50, kde=kde,
                       stat="density", kde_kws=dict(cut=3),
                       alpha=.4, edgecolor=(1, 1, 1, .4),
                       ax=ax)
