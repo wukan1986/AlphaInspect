@@ -17,7 +17,7 @@ def calc_cum_return_by_quantile(df_pl: pl.DataFrame, fwd_ret_1: str, period: int
     out = pd.DataFrame(index=rr[_DATE_])
     rr = rr.select(pl.exclude(_DATE_)).to_numpy() + 1  # 日收益
     qq = qq.select(pl.exclude(_DATE_)).to_numpy()  # 分组编号
-    logger.info('累计收益准备数据,period={}', period)
+    # logger.info('累计收益准备数据,period={}', period)
 
     np.seterr(divide='ignore', invalid='ignore')
     for i in range(int(q_max) + 1):
