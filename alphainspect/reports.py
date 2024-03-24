@@ -1,7 +1,9 @@
+import base64
+import io
 import os
 from math import ceil
 from pathlib import Path
-from typing import Sequence, Tuple
+from typing import Sequence, Tuple, Any
 
 import polars as pl
 from loguru import logger  # noqa
@@ -12,6 +14,28 @@ from alphainspect.ic import calc_ic, plot_ic_ts, plot_ic_heatmap_monthly
 from alphainspect.portfolio import calc_cum_return_by_quantile, plot_quantile_portfolio
 from alphainspect.turnover import calc_auto_correlation, calc_quantile_turnover, plot_factor_auto_correlation, plot_turnover_quantile
 from alphainspect.utils import plot_hist
+
+html_template = """
+<html>
+<head>
+<style>
+table { border-collapse: collapse;}
+img {border: 1px solid;}
+</style>
+</head>
+<body>
+{{body}}
+</body>
+</html>
+"""
+
+
+def fig_to_img(fig, format: str = "png") -> str:
+    """图片转HTML字符串"""
+    buf = io.BytesIO()
+    fig.savefig(buf, format=format)
+    return '<img src="data:image/{};base64,{}" />'.format(format,
+                                                          base64.b64encode(buf.getvalue()).decode())
 
 
 def ipynb_to_html(template: str, output: str = None,
@@ -133,7 +157,7 @@ def create_1x3_sheet(df_pl: pl.DataFrame,
                      period: int = 5,
                      factor_quantile: str = _QUANTILE_,
                      figsize=(12, 4),
-                     axvlines: Sequence[str] = ()) -> None:
+                     axvlines: Sequence[str] = ()) -> Tuple[Any, Any, Any, Any]:
     """画2*2的图表。含IC时序、IC直方图、IC热力图、累积收益图
 
     Parameters
@@ -159,16 +183,18 @@ def create_1x3_sheet(df_pl: pl.DataFrame,
     # logger.info('计算IC')
     df_ic = calc_ic(df_pl, [factor], [forward_return])
     col = df_ic.columns[1]
-    plot_ic_ts(df_ic, col, axvlines=axvlines, ax=axes[0])
+    ic_dict = plot_ic_ts(df_ic, col, axvlines=axvlines, ax=axes[0])
 
     # 画累计收益
     df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period, factor_quantile)
     plot_quantile_portfolio(df_cum_ret, fwd_ret_1, period, axvlines=axvlines, ax=axes[1])
 
     # 画因子直方图
-    plot_hist(df_pl, factor, ax=axes[2])
+    hist_dict = plot_hist(df_pl, factor, ax=axes[2])
 
     fig.tight_layout()
+
+    return fig, ic_dict, hist_dict, df_cum_ret
 
 
 def create_2x3_sheet(df_pl: pl.DataFrame,

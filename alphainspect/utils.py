@@ -1,4 +1,5 @@
 import math
+from typing import Dict
 
 import numpy as np
 import pandas as pd
@@ -178,7 +179,7 @@ def select_by_prefix(df_pl: pl.DataFrame, name: str) -> pl.DataFrame:
 def plot_hist(df_pl: pl.DataFrame, col: str,
               *,
               kde: bool = False,  # 启用kde后速度慢了非常多
-              ax=None) -> None:
+              ax=None) -> Dict[str, float]:
     """直方图
 
     Examples
@@ -205,3 +206,5 @@ def plot_hist(df_pl: pl.DataFrame, col: str,
     logger.info(title)
     ax.set_title(title)
     ax.set_xlabel('')
+
+    return {'mean': mean, 'std': std, 'skew': skew, 'kurt': kurt}

@@ -1,5 +1,5 @@
 import itertools
-from typing import Sequence, Literal
+from typing import Sequence, Literal, Dict
 
 import numpy as np
 import pandas as pd
@@ -75,7 +75,7 @@ def row_unstack(df_pl: pl.DataFrame, factors: Sequence[str], forward_returns: Se
 
 def plot_ic_ts(df_pl: pl.DataFrame, col: str,
                *,
-               axvlines=(), ax=None) -> None:
+               axvlines=(), ax=None) -> Dict[str, float]:
     """IC时序图
 
     Examples
@@ -95,10 +95,10 @@ def plot_ic_ts(df_pl: pl.DataFrame, col: str,
 
     ic = s.mean()
     ir = s.mean() / s.std()
-    rate = (s.abs() > 0.02).mean()
+    ratio = (s.abs() > 0.02).mean()
     t_stat, p_value = stats.ttest_1samp(s, 0)
 
-    title = f"{col},IC={ic:0.4f},>0.02={rate:0.2f},IR={ir:0.4f},t_stat={t_stat:0.4f},p_value={p_value:0.4f}"
+    title = f"{col},IC={ic:0.4f},>0.02={ratio:0.2f},IR={ir:0.4f},t_stat={t_stat:0.4f},p_value={p_value:0.4f}"
     logger.info(title)
     ax1 = df_pd.plot.line(x=_DATE_, y=['ic', 'sma_20'], alpha=0.5, lw=1,
                           title=title,
@@ -110,6 +110,8 @@ def plot_ic_ts(df_pl: pl.DataFrame, col: str,
     ax.set_xlabel('')
     for v in axvlines:
         ax1.axvline(x=v, c="b", ls="--", lw=1)
+
+    return {'IC': ic, 'IR': ir, 'ratio': ratio, 't_stat': t_stat, 'p_value': p_value}
 
 
 def plot_ic_qq(df_pl: pl.DataFrame, col: str,
