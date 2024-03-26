@@ -1,9 +1,22 @@
+"""
+问题：明日涨跌停是否要过滤?
+
+1. 回测分层累计收益时应当过滤掉涨跌停
+    因为开盘前预测出股票后，开盘后才发现涨跌停无法交易影响曲线
+2. IC计算，是否要过滤掉涨跌停呢？个人认为不能过滤掉
+    因为IC用于评价预测能力，能不能交易不是它能实现的
+3. 机器学习。应当保留涨跌停。原因与IC一样
+    涨跌停的记录全删了后，失去学习涨跌停相关信息的机会。
+
+有不同观点的朋友可以提issue
+
+"""
 import base64
 import io
 import os
 from math import ceil
 from pathlib import Path
-from typing import Sequence, Tuple, Any
+from typing import Sequence, Tuple, Any, Optional
 
 import polars as pl
 from loguru import logger  # noqa
@@ -110,6 +123,7 @@ def create_2x2_sheet(df_pl: pl.DataFrame,
                      *,
                      period: int = 5,
                      factor_quantile: str = _QUANTILE_,
+                     drop_price_limit: Optional[str] = None,
                      figsize=(12, 9),
                      axvlines: Sequence[str] = ()) -> None:
     """画2*2的图表。含IC时序、IC直方图、IC热力图、累积收益图
@@ -125,6 +139,7 @@ def create_2x2_sheet(df_pl: pl.DataFrame,
     period: int
         累计收益时持仓天数与资金份数
     factor_quantile:str
+    drop_price_limit
     figsize
 
     axvlines
@@ -144,7 +159,7 @@ def create_2x2_sheet(df_pl: pl.DataFrame,
     plot_hist(df_pl, factor, ax=axes[2])
 
     # 画累计收益
-    df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period, factor_quantile)
+    df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period, factor_quantile, drop_price_limit)
     plot_quantile_portfolio(df_cum_ret, fwd_ret_1, period, axvlines=axvlines, ax=axes[3])
 
     fig.tight_layout()
@@ -156,6 +171,7 @@ def create_1x3_sheet(df_pl: pl.DataFrame,
                      *,
                      period: int = 5,
                      factor_quantile: str = _QUANTILE_,
+                     drop_price_limit: Optional[str] = None,
                      figsize=(12, 4),
                      axvlines: Sequence[str] = ()) -> Tuple[Any, Any, Any, Any]:
     """画2*2的图表。含IC时序、IC直方图、IC热力图、累积收益图
@@ -171,6 +187,7 @@ def create_1x3_sheet(df_pl: pl.DataFrame,
     period: int
         累计收益时持仓天数与资金份数
     factor_quantile:str
+    drop_price_limit
     figsize
 
     axvlines
@@ -186,7 +203,7 @@ def create_1x3_sheet(df_pl: pl.DataFrame,
     ic_dict = plot_ic_ts(df_ic, col, axvlines=axvlines, ax=axes[0])
 
     # 画累计收益
-    df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period, factor_quantile)
+    df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period, factor_quantile, drop_price_limit)
     plot_quantile_portfolio(df_cum_ret, fwd_ret_1, period, axvlines=axvlines, ax=axes[1])
 
     # 画因子直方图
@@ -203,6 +220,7 @@ def create_2x3_sheet(df_pl: pl.DataFrame,
                      *,
                      periods: Tuple = (2, 5, 10),
                      factor_quantile: str = _QUANTILE_,
+                     drop_price_limit: Optional[str] = None,
                      figsize=(12, 9),
                      axvlines: Sequence[str] = ()) -> None:
     """画2*2的图表。含IC时序、IC直方图、IC热力图、累积收益图
@@ -218,7 +236,7 @@ def create_2x3_sheet(df_pl: pl.DataFrame,
     periods:Tuple
         累计收益时持仓天数与资金份数
     factor_quantile: str
-
+    drop_price_limit
     axvlines
 
     """
@@ -237,7 +255,7 @@ def create_2x3_sheet(df_pl: pl.DataFrame,
     # 画累计收益
     # logger.info('计算累计收益')
     for i, period in enumerate(periods):
-        df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period, factor_quantile)
+        df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period, factor_quantile, drop_price_limit)
         plot_quantile_portfolio(df_cum_ret, fwd_ret_1, period, axvlines=axvlines, ax=axes[3 + i])
 
     fig.tight_layout()
@@ -250,6 +268,7 @@ def create_3x2_sheet(df_pl: pl.DataFrame,
                      period: int = 5,
                      factor_quantile: str = _QUANTILE_,
                      periods: Sequence[int] = (1, 5, 10, 20),
+                     drop_price_limit: Optional[str] = None,
                      figsize=(12, 14),
                      axvlines: Sequence[str] = ()) -> None:
     """画2*3图
@@ -267,7 +286,7 @@ def create_3x2_sheet(df_pl: pl.DataFrame,
     periods:
         换手率，多期比较
     factor_quantile:str
-
+    drop_price_limit
     axvlines
 
     """
@@ -283,7 +302,7 @@ def create_3x2_sheet(df_pl: pl.DataFrame,
 
     # 画净值曲线
     # logger.info('计算累计收益')
-    df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period, factor_quantile)
+    df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period, factor_quantile, drop_price_limit)
     plot_quantile_portfolio(df_cum_ret, fwd_ret_1, period, axvlines=axvlines, ax=axes[1, 1])
 
     # 画换手率
