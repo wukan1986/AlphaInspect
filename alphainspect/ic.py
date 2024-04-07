@@ -37,6 +37,16 @@ def mutual_info(a: str, b: str) -> Expr:
     return pl.map_groups([a, b], lambda xx: mutual_info_func(xx))
 
 
+def w_corr(a: str, b: str, w: str) -> pl.Expr:
+    def _w_corr(xx):
+        x, y, weights = xx
+        cov_matrix = np.cov(x, y, aweights=weights)
+        weighted_corr = cov_matrix[0, 1] / np.sqrt(cov_matrix[0, 0] * cov_matrix[1, 1])
+        return weighted_corr
+
+    return pl.map_groups([a, b, w], lambda xx: _w_corr(xx))
+
+
 def calc_ic(df_pl: pl.DataFrame, factors: Sequence[str], forward_returns: Sequence[str],
             method: Literal['rank_ic', 'mutual_info'] = 'rank_ic') -> pl.DataFrame:
     """多因子多收益的IC矩阵。方便部分用户统计大量因子信息"""

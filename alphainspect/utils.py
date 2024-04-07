@@ -208,3 +208,19 @@ def plot_hist(df_pl: pl.DataFrame, col: str,
     ax.set_xlabel('')
 
     return {'mean': mean, 'std': std, 'skew': skew, 'kurt': kurt}
+
+
+# =================================
+# 没分好类的函数先放这，等以后再移动
+def symmetric_orthogonal(matrix):
+    # 计算特征值和特征向量
+    eigenvalues, eigenvectors = np.linalg.eigh(matrix)
+
+    # 按照特征值的大小排序
+    sorted_indices = np.argsort(eigenvalues)[::-1]
+    sorted_eigenvectors = eigenvectors[:, sorted_indices]
+
+    # 正交化矩阵
+    orthogonal_matrix = np.linalg.qr(sorted_eigenvectors)[0]
+
+    return orthogonal_matrix
