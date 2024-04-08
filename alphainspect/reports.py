@@ -123,7 +123,6 @@ def create_2x2_sheet(df_pl: pl.DataFrame,
                      *,
                      period: int = 5,
                      factor_quantile: str = _QUANTILE_,
-                     drop_price_limit: Optional[str] = None,
                      figsize=(12, 9),
                      axvlines: Sequence[str] = ()) -> None:
     """画2*2的图表。含IC时序、IC直方图、IC热力图、累积收益图
@@ -139,7 +138,6 @@ def create_2x2_sheet(df_pl: pl.DataFrame,
     period: int
         累计收益时持仓天数与资金份数
     factor_quantile:str
-    drop_price_limit
     figsize
 
     axvlines
@@ -159,7 +157,7 @@ def create_2x2_sheet(df_pl: pl.DataFrame,
     plot_hist(df_pl, factor, ax=axes[2])
 
     # 画累计收益
-    df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period, factor_quantile, drop_price_limit)
+    df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period, factor_quantile)
     plot_quantile_portfolio(df_cum_ret, fwd_ret_1, period, axvlines=axvlines, ax=axes[3])
 
     fig.tight_layout()
@@ -171,7 +169,6 @@ def create_1x3_sheet(df_pl: pl.DataFrame,
                      *,
                      period: int = 5,
                      factor_quantile: str = _QUANTILE_,
-                     drop_price_limit: Optional[str] = None,
                      figsize=(12, 4),
                      axvlines: Sequence[str] = ()) -> Tuple[Any, Any, Any, Any]:
     """画2*2的图表。含IC时序、IC直方图、IC热力图、累积收益图
@@ -187,7 +184,6 @@ def create_1x3_sheet(df_pl: pl.DataFrame,
     period: int
         累计收益时持仓天数与资金份数
     factor_quantile:str
-    drop_price_limit
     figsize
 
     axvlines
@@ -203,7 +199,7 @@ def create_1x3_sheet(df_pl: pl.DataFrame,
     ic_dict = plot_ic_ts(df_ic, col, axvlines=axvlines, ax=axes[0])
 
     # 画累计收益
-    df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period, factor_quantile, drop_price_limit)
+    df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period, factor_quantile)
     plot_quantile_portfolio(df_cum_ret, fwd_ret_1, period, axvlines=axvlines, ax=axes[1])
 
     # 画因子直方图
@@ -220,7 +216,6 @@ def create_2x3_sheet(df_pl: pl.DataFrame,
                      *,
                      periods: Tuple = (2, 5, 10),
                      factor_quantile: str = _QUANTILE_,
-                     drop_price_limit: Optional[str] = None,
                      figsize=(12, 9),
                      axvlines: Sequence[str] = ()) -> None:
     """画2*2的图表。含IC时序、IC直方图、IC热力图、累积收益图
@@ -236,7 +231,6 @@ def create_2x3_sheet(df_pl: pl.DataFrame,
     periods:Tuple
         累计收益时持仓天数与资金份数
     factor_quantile: str
-    drop_price_limit
     axvlines
 
     """
@@ -255,7 +249,7 @@ def create_2x3_sheet(df_pl: pl.DataFrame,
     # 画累计收益
     # logger.info('计算累计收益')
     for i, period in enumerate(periods):
-        df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period, factor_quantile, drop_price_limit)
+        df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period, factor_quantile)
         plot_quantile_portfolio(df_cum_ret, fwd_ret_1, period, axvlines=axvlines, ax=axes[3 + i])
 
     fig.tight_layout()
@@ -268,7 +262,6 @@ def create_3x2_sheet(df_pl: pl.DataFrame,
                      period: int = 5,
                      factor_quantile: str = _QUANTILE_,
                      periods: Sequence[int] = (1, 5, 10, 20),
-                     drop_price_limit: Optional[str] = None,
                      figsize=(12, 14),
                      axvlines: Sequence[str] = ()) -> None:
     """画2*3图
@@ -286,7 +279,6 @@ def create_3x2_sheet(df_pl: pl.DataFrame,
     periods:
         换手率，多期比较
     factor_quantile:str
-    drop_price_limit
     axvlines
 
     """
@@ -302,7 +294,7 @@ def create_3x2_sheet(df_pl: pl.DataFrame,
 
     # 画净值曲线
     # logger.info('计算累计收益')
-    df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period, factor_quantile, drop_price_limit)
+    df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period, factor_quantile)
     plot_quantile_portfolio(df_cum_ret, fwd_ret_1, period, axvlines=axvlines, ax=axes[1, 1])
 
     # 画换手率

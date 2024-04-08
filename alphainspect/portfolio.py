@@ -10,13 +10,8 @@ from alphainspect import _QUANTILE_, _DATE_, _ASSET_, _WEIGHT_
 from alphainspect.utils import cumulative_returns, plot_heatmap
 
 
-def calc_cum_return_by_quantile(df_pl: pl.DataFrame, fwd_ret_1: str, period: int = 5, factor_quantile: str = _QUANTILE_,
-                                drop_price_limit: Optional[str] = None) -> pd.DataFrame:
+def calc_cum_return_by_quantile(df_pl: pl.DataFrame, fwd_ret_1: str, period: int = 5, factor_quantile: str = _QUANTILE_) -> pd.DataFrame:
     """分层计算收益。分成N层，层内等权"""
-    if drop_price_limit is not None:
-        # 计算收益时删除明日涨停的股票。划分到-1组
-        df_pl = df_pl.with_columns(pl.when(~pl.col(drop_price_limit)).then(pl.col(factor_quantile)).otherwise(-1))
-
     q_max = df_pl.select(pl.max(factor_quantile)).to_series(0)[0]
     rr = df_pl.pivot(index=_DATE_, columns=_ASSET_, values=fwd_ret_1, aggregate_function='first', sort_columns=True).sort(_DATE_)
     qq = df_pl.pivot(index=_DATE_, columns=_ASSET_, values=factor_quantile, aggregate_function='first', sort_columns=True).sort(_DATE_)
@@ -40,13 +35,9 @@ def calc_cum_return_by_quantile(df_pl: pl.DataFrame, fwd_ret_1: str, period: int
     return out
 
 
-def calc_cum_return_spread(df_pl: pl.DataFrame, fwd_ret_1: str, period: int = 5, factor_quantile: str = _QUANTILE_,
-                           drop_price_limit: Optional[str] = None) -> pd.DataFrame:
+def calc_cum_return_spread(df_pl: pl.DataFrame, fwd_ret_1: str, period: int = 5, factor_quantile: str = _QUANTILE_) -> pd.DataFrame:
     """分层计算收益。分成N层，层内等权。
     取Top层和Bottom层。比较不同的计算方法多空收益的区别"""
-    if drop_price_limit is not None:
-        # 计算收益时删除明日涨停的股票
-        df_pl = df_pl.with_columns(pl.when(~pl.col(drop_price_limit)).then(pl.col(factor_quantile)).otherwise(-1))
 
     q_max = df_pl.select(pl.max(factor_quantile)).to_series(0)[0]
     rr = df_pl.pivot(index=_DATE_, columns=_ASSET_, values=fwd_ret_1, aggregate_function='first', sort_columns=True).sort(_DATE_).fill_nan(0)
@@ -85,13 +76,8 @@ def calc_cum_return_spread(df_pl: pl.DataFrame, fwd_ret_1: str, period: int = 5,
     return out
 
 
-def calc_cum_return_weights(df_pl: pl.DataFrame, fwd_ret_1: str, period: int = 1,
-                            drop_price_limit: Optional[str] = None) -> pd.DataFrame:
+def calc_cum_return_weights(df_pl: pl.DataFrame, fwd_ret_1: str, period: int = 1) -> pd.DataFrame:
     """指定权重计算收益。不再分层计算。资金也不分份"""
-    if drop_price_limit is not None:
-        # 计算收益时删除明日涨停的股票
-        df_pl = df_pl.with_columns(pl.when(~pl.col(drop_price_limit)).then(pl.col(_WEIGHT_)).otherwise(0))
-
     rr = df_pl.pivot(index=_DATE_, columns=_ASSET_, values=fwd_ret_1, aggregate_function='first', sort_columns=True).sort(_DATE_)
     ww = df_pl.pivot(index=_DATE_, columns=_ASSET_, values=_WEIGHT_, aggregate_function='first', sort_columns=True).sort(_DATE_)
 
@@ -139,12 +125,11 @@ def create_portfolio1_sheet(df_pl: pl.DataFrame,
                             fwd_ret_1: str,
                             period=5,
                             factor_quantile: str = _QUANTILE_,
-                            drop_price_limit: Optional[str] = None,
                             *,
                             axvlines=()) -> None:
     """分层累计收益图"""
     # 分层累计收益
-    df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period, factor_quantile, drop_price_limit)
+    df_cum_ret = calc_cum_return_by_quantile(df_pl, fwd_ret_1, period, factor_quantile)
 
     fig, axes = plt.subplots(2, 1, figsize=(12, 9))
     plot_quantile_portfolio(df_cum_ret, fwd_ret_1, period, axvlines=axvlines, ax=axes[0])
@@ -164,12 +149,11 @@ def create_portfolio1_sheet(df_pl: pl.DataFrame,
 
 def create_portfolio2_sheet(df_pl: pl.DataFrame,
                             fwd_ret_1: str,
-                            drop_price_limit: Optional[str] = None,
                             *,
                             axvlines=()) -> None:
     """分资产收益。权重由外部指定，资金是隔离"""
     # 各资产收益，如果资产数量过多，图会比较卡顿
-    df_cum_ret = calc_cum_return_weights(df_pl, fwd_ret_1, 1, drop_price_limit)
+    df_cum_ret = calc_cum_return_weights(df_pl, fwd_ret_1, 1)
 
     fig, axes = plt.subplots(2, 1, figsize=(12, 9), squeeze=False)
     axes = axes.flatten()
