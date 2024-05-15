@@ -29,7 +29,7 @@ def func(factor, tpl: str = html_template):
     df_output = with_factor_quantile(df_output, factor, quantiles=10, factor_quantile='_fq_1')
 
     # %%
-    fig, ic_dict, hist_dict, cum, avg, std = create_1x3_sheet(df_output, factor, forward_return, fwd_ret_1, period=period, factor_quantile='_fq_1', axvlines=axvlines)
+    fig, ic_dict, hist_dict, cum, avg, std = create_1x3_sheet(df_output, factor, forward_return, fwd_ret_1, factor_quantile='_fq_1', axvlines=axvlines)
 
     s1 = cum.iloc[-1]
     s2 = pd.Series(ic_dict | hist_dict)

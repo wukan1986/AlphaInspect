@@ -1,4 +1,4 @@
-from typing import Tuple, Any
+from typing import Tuple
 
 import numpy as np
 import pandas as pd
@@ -11,7 +11,7 @@ from alphainspect import _QUANTILE_, _DATE_, _ASSET_, _WEIGHT_
 from alphainspect.utils import cumulative_returns, plot_heatmap
 
 
-def calc_cum_return_by_quantile_(df_pl: pl.DataFrame, fwd_ret_1: str, period: int = 5, factor_quantile: str = _QUANTILE_) -> pd.DataFrame:
+def _calc_cum_return_by_quantile(df_pl: pl.DataFrame, fwd_ret_1: str, period: int = 5, factor_quantile: str = _QUANTILE_) -> pd.DataFrame:
     """分层计算收益。分成N层，层内等权"""
     q_max = df_pl.select(pl.max(factor_quantile)).to_series(0)[0]
     rr = df_pl.pivot(index=_DATE_, columns=_ASSET_, values=fwd_ret_1, aggregate_function='first', sort_columns=True).sort(_DATE_)
@@ -36,7 +36,7 @@ def calc_cum_return_by_quantile_(df_pl: pl.DataFrame, fwd_ret_1: str, period: in
     return out
 
 
-def calc_cum_return_by_quantile(df_pl: pl.DataFrame, fwd_ret_1: str, factor_quantile: str = _QUANTILE_) -> Tuple[Any, Any, Any, Any]:
+def calc_cum_return_by_quantile(df_pl: pl.DataFrame, fwd_ret_1: str, factor_quantile: str = _QUANTILE_) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """分层计算收益。分成N层，层内等权
 
     单利不加仓。不考虑手续费，不考虑资金不足，资金也不分多份。每天入场每天出场。
@@ -51,6 +51,7 @@ def calc_cum_return_by_quantile(df_pl: pl.DataFrame, fwd_ret_1: str, factor_quan
     cum = ret.with_columns(cs.numeric().fill_null(0).cum_sum()).to_pandas().set_index(_DATE_)
     avg = ret.select(cs.numeric().mean()).to_pandas().iloc[0]
     std = ret.select(cs.numeric().std(ddof=0)).to_pandas().iloc[0]
+    ret = ret.to_pandas().set_index(_DATE_)
     return ret, cum, avg, std
 
 
@@ -116,10 +117,10 @@ def calc_cum_return_weights(df_pl: pl.DataFrame, fwd_ret_1: str, period: int = 1
     return out
 
 
-def plot_quantile_portfolio(df_pd: pd.DataFrame, fwd_ret_1: str, period: int = 5,
+def plot_quantile_portfolio(df_pd: pd.DataFrame, fwd_ret_1: str,
                             *,
                             axvlines=None, ax=None) -> None:
-    ax = df_pd.plot(ax=ax, title=f'{fwd_ret_1}, period={period}', cmap='coolwarm', lw=1, grid=True)
+    ax = df_pd.plot(ax=ax, title=f'{fwd_ret_1}', cmap='coolwarm', lw=1, grid=True)
     ax.legend(loc='upper left')
     ax.set_xlabel('')
     for v in axvlines:
@@ -142,7 +143,6 @@ def plot_portfolio_heatmap_monthly(df_pd: pd.DataFrame,
 
 def create_portfolio1_sheet(df_pl: pl.DataFrame,
                             fwd_ret_1: str,
-                            period=5,
                             factor_quantile: str = _QUANTILE_,
                             *,
                             axvlines=()) -> None:
@@ -151,7 +151,7 @@ def create_portfolio1_sheet(df_pl: pl.DataFrame,
     ret, cum, avg, std = calc_cum_return_by_quantile(df_pl, fwd_ret_1, factor_quantile)
 
     fig, axes = plt.subplots(2, 1, figsize=(12, 9))
-    plot_quantile_portfolio(cum, fwd_ret_1, period, axvlines=axvlines, ax=axes[0])
+    plot_quantile_portfolio(cum, fwd_ret_1, axvlines=axvlines, ax=axes[0])
     groups = cum.columns[[0, -1]]
     for i, g in enumerate(groups):
         ax = plt.subplot(223 + i)
@@ -160,9 +160,11 @@ def create_portfolio1_sheet(df_pl: pl.DataFrame,
     fig.tight_layout()
 
     # 多空累计收益
-    df_spread = calc_cum_return_spread(df_pl, fwd_ret_1, period, factor_quantile=factor_quantile)
+    df_spread = ret.iloc[:, [0, -1]].copy()
+    df_spread['LS'] = df_spread.iloc[:, -1] - df_spread.iloc[:, 0]
+    df_spread = df_spread.cumsum()
     fig, axes = plt.subplots(1, 1, figsize=(12, 9))
-    plot_quantile_portfolio(df_spread, fwd_ret_1, period, axvlines=axvlines, ax=axes)
+    plot_quantile_portfolio(df_spread, fwd_ret_1, axvlines=axvlines, ax=axes)
     fig.tight_layout()
 
 
@@ -177,10 +179,10 @@ def create_portfolio2_sheet(df_pl: pl.DataFrame,
     fig, axes = plt.subplots(2, 1, figsize=(12, 9), squeeze=False)
     axes = axes.flatten()
     # 分资产收益
-    plot_quantile_portfolio(df_cum_ret, fwd_ret_1, 1, axvlines=axvlines, ax=axes[0])
+    plot_quantile_portfolio(df_cum_ret, fwd_ret_1, axvlines=axvlines, ax=axes[0])
 
     # 资产平均收益，相当于等权
     s = df_cum_ret.mean(axis=1)
     s.name = 'portfolio'
-    plot_quantile_portfolio(s, fwd_ret_1, 1, axvlines=axvlines, ax=axes[1])
+    plot_quantile_portfolio(s, fwd_ret_1, axvlines=axvlines, ax=axes[1])
     fig.tight_layout()

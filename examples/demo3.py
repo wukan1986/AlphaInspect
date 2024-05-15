@@ -19,9 +19,8 @@ def func(factor):
                              open_browser=False,
                              # 以下参数转成环境变量自动变成大写
                              factor=factor,
-                             fwd_ret_1='RETURN_OO_1',
-                             forward_return='RETURN_OO_5',
-                             period=5)
+                             fwd_ret_1='RETURN_OO_5',
+                             forward_return='RETURN_OO_5')
 
     return ret_code
 
@@ -29,10 +28,9 @@ def func(factor):
 if __name__ == '__main__':
     import multiprocessing
 
+    factors = ['SMA_005', 'SMA_010', 'SMA_020']
+
     # 没必要设置太大，因为部分计算使用的polars多线程，会将CPU跑满
     with multiprocessing.Pool(8) as pool:
-        _map = pool.map
-
-        factors = ['SMA_005', 'SMA_010', 'SMA_020']
-        output = list(_map(func, factors))
+        output = list(pool.map(func, factors))
         print(output)

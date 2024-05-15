@@ -12,7 +12,7 @@ sys.path.append(pwd)
 import matplotlib.pyplot as plt
 import polars as pl
 
-from alphainspect.reports import create_2x2_sheet, create_3x2_sheet, create_2x3_sheet, create_1x3_sheet
+from alphainspect.reports import create_2x2_sheet, create_3x2_sheet, create_1x3_sheet
 from alphainspect.utils import with_factor_quantile
 
 df_output = pl.read_parquet('data/data.parquet')
@@ -28,13 +28,11 @@ forward_return = 'RETURN_OO_5'  # 计算因子IC用的5日收益率
 df_output = with_factor_quantile(df_output, factor, quantiles=10, factor_quantile='_fq_1')
 
 # %%
-fig, ic_dict, hist_dict, cum, avg, std = create_1x3_sheet(df_output, factor, forward_return, fwd_ret_1, period=period, factor_quantile='_fq_1', axvlines=axvlines)
+fig, ic_dict, hist_dict, cum, avg, std = create_1x3_sheet(df_output, factor, forward_return, fwd_ret_1, factor_quantile='_fq_1', axvlines=axvlines)
 # %%
-create_2x2_sheet(df_output, factor, forward_return, fwd_ret_1, period=period, factor_quantile='_fq_1', axvlines=axvlines)
+create_2x2_sheet(df_output, factor, forward_return, fwd_ret_1, factor_quantile='_fq_1', axvlines=axvlines)
 # %%
-create_2x3_sheet(df_output, factor, forward_return, fwd_ret_1, periods=(5, 10), factor_quantile='_fq_1', axvlines=axvlines)
-# %%
-create_3x2_sheet(df_output, factor, forward_return, fwd_ret_1, period=period, factor_quantile='_fq_1', axvlines=axvlines)
+create_3x2_sheet(df_output, factor, forward_return, fwd_ret_1, factor_quantile='_fq_1', axvlines=axvlines)
 
 plt.show()
 
