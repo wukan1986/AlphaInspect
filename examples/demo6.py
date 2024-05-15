@@ -29,9 +29,9 @@ def func(factor, tpl: str = html_template):
     df_output = with_factor_quantile(df_output, factor, quantiles=10, factor_quantile='_fq_1')
 
     # %%
-    fig, ic_dict, hist_dict, df_cum_ret = create_1x3_sheet(df_output, factor, forward_return, fwd_ret_1, period=period, factor_quantile='_fq_1', axvlines=axvlines)
+    fig, ic_dict, hist_dict, cum, avg, std = create_1x3_sheet(df_output, factor, forward_return, fwd_ret_1, period=period, factor_quantile='_fq_1', axvlines=axvlines)
 
-    s1 = df_cum_ret.iloc[-1]
+    s1 = cum.iloc[-1]
     s2 = pd.Series(ic_dict | hist_dict)
     txt1 = pd.concat([s1, s2])
     txt1 = pd.DataFrame({factor: txt1}).T.to_html(float_format=lambda x: format(x, ',.4f'))  # , index=pd.Index([factor], name='factor')
@@ -52,6 +52,6 @@ if __name__ == '__main__':
     with multiprocessing.Pool(8) as pool:
         _map = map  # pool.map
 
-        factors = ['SMA_005',]
+        factors = ['SMA_005', ]
         output = list(_map(func, factors))
         print(output)

@@ -32,10 +32,10 @@ _ = (
 
 _ = (
     r"_x_0",
-    r"_x_2",
-    r"_x_3",
     r"_x_1",
+    r"_x_3",
     r"RETURN_CC_1",
+    r"_x_2",
     r"RETURN_CO_1",
     r"RETURN_OC_1",
     r"RETURN_OO_1",
@@ -45,10 +45,10 @@ _ = (
 )
 (
     _x_0,
-    _x_2,
-    _x_3,
     _x_1,
+    _x_3,
     RETURN_CC_1,
+    _x_2,
     RETURN_CO_1,
     RETURN_OC_1,
     RETURN_OO_1,
@@ -60,13 +60,15 @@ _ = (
 _DATE_ = "date"
 _ASSET_ = "asset"
 
+CS_SW_L1 = pl.col(r"^sw_l1_\d+$")
+
 
 def func_0_ts__asset(df: pl.DataFrame) -> pl.DataFrame:
     df = df.sort(by=[_DATE_])
     # ========================================
     df = df.with_columns(
-        _x_0=ts_delay(OPEN, -1),
-        _x_2=ts_delay(CLOSE, -1),
+        _x_0=ts_delay(CLOSE, -1),
+        _x_1=ts_delay(OPEN, -1),
     )
     return df
 
@@ -78,13 +80,13 @@ def func_0_cl(df: pl.DataFrame) -> pl.DataFrame:
     )
     # ========================================
     df = df.with_columns(
-        _x_1=1 / _x_0,
-        RETURN_CC_1=_x_2 * _x_3 - 1,
-        RETURN_CO_1=_x_0 * _x_3 - 1,
+        RETURN_CC_1=_x_0 * _x_3 - 1,
+        _x_2=1 / _x_1,
+        RETURN_CO_1=_x_1 * _x_3 - 1,
     )
     # ========================================
     df = df.with_columns(
-        RETURN_OC_1=_x_1 * _x_2 - 1,
+        RETURN_OC_1=_x_0 * _x_2 - 1,
     )
     return df
 
@@ -93,41 +95,41 @@ def func_1_ts__asset(df: pl.DataFrame) -> pl.DataFrame:
     df = df.sort(by=[_DATE_])
     # ========================================
     df = df.with_columns(
-        RETURN_OO_1=_x_1 * ts_delay(OPEN, -2) - 1,
-        RETURN_OO_2=_x_1 * ts_delay(OPEN, -3) - 1,
-        RETURN_OO_5=_x_1 * ts_delay(OPEN, -6) - 1,
-        RETURN_OO_10=_x_1 * ts_delay(OPEN, -11) - 1,
+        RETURN_OO_1=_x_2 * ts_delay(OPEN, -2) - 1,
+        RETURN_OO_2=(_x_2 * ts_delay(OPEN, -3)) ** 0.5 - 1,
+        RETURN_OO_5=(_x_2 * ts_delay(OPEN, -6)) ** 0.2 - 1,
+        RETURN_OO_10=(_x_2 * ts_delay(OPEN, -11)) ** 0.1 - 1,
     )
     return df
 
 
 """
 #========================================func_0_ts__asset
-_x_0 = ts_delay(OPEN, -1)
-_x_2 = ts_delay(CLOSE, -1)
+_x_0 = ts_delay(CLOSE, -1)
+_x_1 = ts_delay(OPEN, -1)
 #========================================func_0_cl
 _x_3 = 1/CLOSE
 #========================================func_0_cl
-_x_1 = 1/_x_0
-RETURN_CC_1 = _x_2*_x_3 - 1
-RETURN_CO_1 = _x_0*_x_3 - 1
+RETURN_CC_1 = _x_0*_x_3 - 1
+_x_2 = 1/_x_1
+RETURN_CO_1 = _x_1*_x_3 - 1
 #========================================func_0_cl
-RETURN_OC_1 = _x_1*_x_2 - 1
+RETURN_OC_1 = _x_0*_x_2 - 1
 #========================================func_1_ts__asset
-RETURN_OO_1 = _x_1*ts_delay(OPEN, -2) - 1
-RETURN_OO_2 = _x_1*ts_delay(OPEN, -3) - 1
-RETURN_OO_5 = _x_1*ts_delay(OPEN, -6) - 1
-RETURN_OO_10 = _x_1*ts_delay(OPEN, -11) - 1
+RETURN_OO_1 = _x_2*ts_delay(OPEN, -2) - 1
+RETURN_OO_2 = (_x_2*ts_delay(OPEN, -3))**0.5 - 1
+RETURN_OO_5 = (_x_2*ts_delay(OPEN, -6))**0.2 - 1
+RETURN_OO_10 = (_x_2*ts_delay(OPEN, -11))**0.1 - 1
 """
 
 """
-RETURN_OO_1 = ts_delay(OPEN, -2)/ts_delay(OPEN, -1) - 1
-RETURN_OO_2 = ts_delay(OPEN, -3)/ts_delay(OPEN, -1) - 1
-RETURN_OO_5 = ts_delay(OPEN, -6)/ts_delay(OPEN, -1) - 1
-RETURN_OO_10 = ts_delay(OPEN, -11)/ts_delay(OPEN, -1) - 1
 RETURN_OC_1 = ts_delay(CLOSE, -1)/ts_delay(OPEN, -1) - 1
 RETURN_CC_1 = -1 + ts_delay(CLOSE, -1)/CLOSE
 RETURN_CO_1 = -1 + ts_delay(OPEN, -1)/CLOSE
+RETURN_OO_1 = ts_delay(OPEN, -2)/ts_delay(OPEN, -1) - 1
+RETURN_OO_2 = (ts_delay(OPEN, -3)/ts_delay(OPEN, -1))**0.5 - 1
+RETURN_OO_5 = (ts_delay(OPEN, -6)/ts_delay(OPEN, -1))**0.2 - 1
+RETURN_OO_10 = (ts_delay(OPEN, -11)/ts_delay(OPEN, -1))**0.1 - 1
 """
 
 
@@ -140,7 +142,8 @@ def main(df: pl.DataFrame) -> pl.DataFrame:
     df = df.group_by(_ASSET_).map_groups(func_1_ts__asset)
 
     # drop intermediate columns
-    df = df.select(pl.exclude(r"^_x_\d+$"))
+    # df = df.select(pl.exclude(r'^_x_\d+$'))
+    df = df.select(~cs.starts_with("_"))
 
     # shrink
     df = df.select(cs.all().shrink_dtype())

@@ -16,10 +16,10 @@ asset = [f's_{i:04d}' for i in range(_K)]
 date = pd.date_range('2015-1-1', periods=_N)
 
 df = pd.DataFrame({
-    'OPEN': np.cumprod(1 + np.random.uniform(-0.1, 0.1, size=(_N, _K)), axis=0).reshape(-1),
-    'HIGH': np.cumprod(1 + np.random.uniform(-0.1, 0.1, size=(_N, _K)), axis=0).reshape(-1),
-    'LOW': np.cumprod(1 + np.random.uniform(-0.1, 0.1, size=(_N, _K)), axis=0).reshape(-1),
-    'CLOSE': np.cumprod(1 + np.random.uniform(-0.1, 0.1, size=(_N, _K)), axis=0).reshape(-1),
+    'OPEN': np.cumprod(1 + np.random.uniform(-0.01, 0.01, size=(_N, _K)), axis=0).reshape(-1),
+    'HIGH': np.cumprod(1 + np.random.uniform(-0.01, 0.01, size=(_N, _K)), axis=0).reshape(-1),
+    'LOW': np.cumprod(1 + np.random.uniform(-0.01, 0.01, size=(_N, _K)), axis=0).reshape(-1),
+    'CLOSE': np.cumprod(1 + np.random.uniform(-0.01, 0.01, size=(_N, _K)), axis=0).reshape(-1),
     "FILTER": np.tri(_N, _K, k=-2).reshape(-1),
 }, index=pd.MultiIndex.from_product([date, asset], names=['date', 'asset'])).reset_index()
 
@@ -29,10 +29,14 @@ df = pl.from_pandas(df)
 df = df.filter(pl.col('FILTER') == 1)
 
 """
-RETURN_OO_1 = ts_delay(OPEN, -2) / ts_delay(OPEN, -1) - 1
-RETURN_OO_2 = ts_delay(OPEN, -3) / ts_delay(OPEN, -1) - 1
-RETURN_OO_5 = ts_delay(OPEN, -6) / ts_delay(OPEN, -1) - 1
+RETURN_OC_1 = ts_delay(CLOSE, -1) / ts_delay(OPEN, -1) - 1
 RETURN_CC_1 = ts_delay(CLOSE, -1) / CLOSE - 1
+RETURN_CO_1 = ts_delay(OPEN, -1) / CLOSE - 1
+RETURN_OO_1 = ts_delay(OPEN, -2) / ts_delay(OPEN, -1) - 1
+RETURN_OO_2 = (ts_delay(OPEN, -3) / ts_delay(OPEN, -1)) ** (1 / 2) - 1
+RETURN_OO_5 = (ts_delay(OPEN, -6) / ts_delay(OPEN, -1)) ** (1 / 5) - 1
+RETURN_OO_10 = (ts_delay(OPEN, -11) / ts_delay(OPEN, -1)) ** (1 / 10) - 1
+
 """
 # 生成多期收益率并移动，用于计算IC等信息
 from codes.forward_returns import main
