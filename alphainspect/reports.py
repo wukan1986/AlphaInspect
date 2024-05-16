@@ -154,7 +154,8 @@ def create_2x2_sheet(df_pl: pl.DataFrame,
 
     # 画累计收益
     ret, cum, avg, std = calc_cum_return_by_quantile(df_pl, fwd_ret_1, factor_quantile)
-    plot_quantile_portfolio(cum, fwd_ret_1, axvlines=axvlines, ax=axes[3])
+    long_short = (ret.iloc[:, -1] - ret.iloc[:, 0]).cumsum()
+    plot_quantile_portfolio(cum, fwd_ret_1, long_short, axvlines=axvlines, ax=axes[3])
 
     fig.tight_layout()
 
@@ -193,8 +194,8 @@ def create_1x3_sheet(df_pl: pl.DataFrame,
 
     # 画累计收益
     ret, cum, avg, std = calc_cum_return_by_quantile(df_pl, fwd_ret_1, factor_quantile)
-
-    plot_quantile_portfolio(cum, fwd_ret_1, axvlines=axvlines, ax=axes[1])
+    long_short = (ret.iloc[:, -1] - ret.iloc[:, 0]).cumsum()
+    plot_quantile_portfolio(cum, fwd_ret_1, long_short, axvlines=axvlines, ax=axes[1])
 
     # 画因子直方图
     hist_dict = plot_hist(df_pl, factor, ax=axes[2])
@@ -241,7 +242,8 @@ def create_3x2_sheet(df_pl: pl.DataFrame,
     # 画净值曲线
     # logger.info('计算累计收益')
     ret, cum, avg, std = calc_cum_return_by_quantile(df_pl, fwd_ret_1, factor_quantile)
-    plot_quantile_portfolio(cum, fwd_ret_1, axvlines=axvlines, ax=axes[1, 1])
+    long_short = (ret.iloc[:, -1] - ret.iloc[:, 0]).cumsum()
+    plot_quantile_portfolio(cum, fwd_ret_1, long_short, axvlines=axvlines, ax=axes[1, 1])
 
     # 画换手率
     # logger.info('计算换手率')

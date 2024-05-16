@@ -118,9 +118,12 @@ def calc_cum_return_weights(df_pl: pl.DataFrame, fwd_ret_1: str, period: int = 1
 
 
 def plot_quantile_portfolio(df_pd: pd.DataFrame, fwd_ret_1: str,
+                            long_short=None,
                             *,
                             axvlines=None, ax=None) -> None:
     ax = df_pd.plot(ax=ax, title=f'{fwd_ret_1}', cmap='coolwarm', lw=1, grid=True)
+    if long_short is not None:
+        long_short.plot(ax=ax, c="k", ls="--", lw=1, label='L-S')
     ax.legend(loc='upper left')
     ax.set_xlabel('')
     for v in axvlines:
@@ -149,22 +152,15 @@ def create_portfolio1_sheet(df_pl: pl.DataFrame,
     """分层累计收益图"""
     # 分层累计收益
     ret, cum, avg, std = calc_cum_return_by_quantile(df_pl, fwd_ret_1, factor_quantile)
+    long_short = (ret.iloc[:, -1] - ret.iloc[:, 0]).cumsum()
 
     fig, axes = plt.subplots(2, 1, figsize=(12, 9))
-    plot_quantile_portfolio(cum, fwd_ret_1, axvlines=axvlines, ax=axes[0])
+    plot_quantile_portfolio(cum, fwd_ret_1, long_short, axvlines=axvlines, ax=axes[0])
     groups = cum.columns[[0, -1]]
     for i, g in enumerate(groups):
         ax = plt.subplot(223 + i)
         # 月度收益
         plot_portfolio_heatmap_monthly(cum, group=g, ax=ax)
-    fig.tight_layout()
-
-    # 多空累计收益
-    df_spread = ret.iloc[:, [0, -1]].copy()
-    df_spread['LS'] = df_spread.iloc[:, -1] - df_spread.iloc[:, 0]
-    df_spread = df_spread.cumsum()
-    fig, axes = plt.subplots(1, 1, figsize=(12, 9))
-    plot_quantile_portfolio(df_spread, fwd_ret_1, axvlines=axvlines, ax=axes)
     fig.tight_layout()
 
 
