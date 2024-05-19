@@ -92,7 +92,7 @@ def plot_events_average(df_pl: pl.DataFrame, factor_quantile: str = _QUANTILE_, 
 
 def plot_events_count(df_pl: pl.DataFrame, axvlines: Sequence[str] = (), ax=None) -> None:
     """事件发生次数"""
-    df_pl = df_pl.group_by(_DATE_).count()
+    df_pl = df_pl.group_by(_DATE_).count().sort(_DATE_)
     df_pd = df_pl.to_pandas().set_index(_DATE_)
     df_pd.plot.line(title='Distribution of events', ax=ax, lw=1, grid=True)
     ax.set_xlabel('')
