@@ -19,8 +19,8 @@ def func(factor):
                              open_browser=False,
                              # 以下参数转成环境变量自动变成大写
                              factor=factor,
-                             fwd_ret_1='RETURN_OO_5',
-                             forward_return='RETURN_OO_5')
+                             fwd_ret_1='RETURN_OO_05',
+                             forward_return='RETURN_OO_05')
 
     return ret_code
 

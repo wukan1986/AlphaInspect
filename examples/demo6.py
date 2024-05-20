@@ -20,11 +20,10 @@ def func(factor, tpl: str = html_template):
     df_output = pl.read_parquet('data/data.parquet')
 
     # %%
-    period = 5
     axvlines = ('2020-01-01',)
 
-    fwd_ret_1 = 'RETURN_OO_1'  # 计算净值用的1日收益率
-    forward_return = 'RETURN_OO_5'  # 计算因子IC用的5日收益率
+    fwd_ret_1 = 'RETURN_OO_01'  # 计算净值用的1日收益率
+    forward_return = 'RETURN_OO_05'  # 计算因子IC用的5日收益率
 
     df_output = with_factor_quantile(df_output, factor, quantiles=10, factor_quantile='_fq_1')
 

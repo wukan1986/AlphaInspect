@@ -140,7 +140,9 @@ def plot_portfolio_heatmap_monthly(df_pd: pd.DataFrame,
     out['first'] = df_pd[group]
     out['last'] = df_pd[group]
     out = out.groupby(by=['year', 'month']).agg({'first': 'first', 'last': 'last'})
-    out['cum_ret'] = out['last'] / out['first'] - 1
+    # 累计收益由累乘改成了累加，这里算法也需要改动
+    # out['cum_ret'] = out['last'] / out['first'] - 1
+    out['cum_ret'] = out['last'] - out['first']
     plot_heatmap(out['cum_ret'].unstack(), title=f"{group},Monthly Return", ax=ax)
 
 
