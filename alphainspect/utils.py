@@ -1,5 +1,5 @@
 import math
-from typing import Dict, Sequence
+from typing import Dict, Sequence, Optional
 
 import numpy as np
 import pandas as pd
@@ -8,7 +8,7 @@ import seaborn as sns
 from loguru import logger
 from polars import selectors as cs
 
-from alphainspect import _QUANTILE_, _DATE_, _GROUP_
+from alphainspect import _QUANTILE_, _DATE_
 from alphainspect._nb import _sub_portfolio_returns
 
 
@@ -20,8 +20,8 @@ def rank_qcut(x: pl.Expr, q: int = 10) -> pl.Expr:
     return (a / b * q).cast(pl.Int16)
 
 
-def with_factor_quantile(df_pl: pl.DataFrame, factor: str, quantiles: int = 10, by_group: bool = False, factor_quantile: str = _QUANTILE_) -> pl.DataFrame:
-    """添加因子分位数信息
+def with_factor_quantile(df_pl: pl.DataFrame, factor: str, quantiles: int = 10, group_name: Optional[str] = None, factor_quantile: str = _QUANTILE_) -> pl.DataFrame:
+    """添加因子分位数信息。隐含了按日期分组
 
     Parameters
     ----------
@@ -30,8 +30,8 @@ def with_factor_quantile(df_pl: pl.DataFrame, factor: str, quantiles: int = 10, 
         因子名
     quantiles: int
         分层数
-    by_group:bool
-        是否分组
+    group_name:str
+        条件分组
     factor_quantile:str
         分组名
 
@@ -49,10 +49,10 @@ def with_factor_quantile(df_pl: pl.DataFrame, factor: str, quantiles: int = 10, 
     # 将nan改成null
     df_pl = df_pl.with_columns(pl.col(factor).fill_nan(None))
 
-    if by_group:
-        return df_pl.group_by(by=[_DATE_, _GROUP_]).map_groups(_func_cs)
-    else:
+    if group_name is None:
         return df_pl.group_by(_DATE_).map_groups(_func_cs)
+    else:
+        return df_pl.group_by(by=[_DATE_, group_name]).map_groups(_func_cs)
 
 
 def with_quantile_tradable(df_pl: pl.DataFrame, factor_quantile: str, next_doji: str = 'NEXT_DOJI') -> pl.DataFrame:

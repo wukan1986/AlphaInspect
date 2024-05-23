@@ -60,7 +60,9 @@ def create_returns_sheet(df_pl: pl.DataFrame, factor: str, forward_returns: Sequ
 def create_returns2_sheet(df_pl: pl.DataFrame,
                           forward_return: str,
                           factor_quantiles: Sequence[str]):
-    """独立双重排序法。例如，将两个因子划分成5*5，查看两因子组合效果
+    """双重排序法。灵活使用分组方法能实现独立双重排序和条件双重排序
+
+    例如，将两个因子划分成5*5，查看两因子组合效果
 
     Parameters
     ----------
@@ -72,6 +74,7 @@ def create_returns2_sheet(df_pl: pl.DataFrame,
     fig, axes = plt.subplots(1, 2, figsize=(12, 9))
 
     df_pl = df_pl.filter([pl.col(q).is_not_null() for q in factor_quantiles])
+
     df_mean = df_pl.group_by(factor_quantiles).agg(pl.mean(forward_return)).sort(factor_quantiles).to_pandas()
     df_std = df_pl.group_by(factor_quantiles).agg(pl.std(forward_return, ddof=0)).sort(factor_quantiles).to_pandas()
     df_mean = df_mean.set_index(factor_quantiles)[forward_return].unstack()
