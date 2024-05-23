@@ -123,7 +123,7 @@ def plot_quantile_portfolio(df_pd: pd.DataFrame, fwd_ret_1: str,
                             axvlines=None, ax=None) -> None:
     ax = df_pd.plot(ax=ax, title=f'{fwd_ret_1}', cmap='coolwarm', lw=1, grid=True)
     if long_short is not None:
-        long_short.plot(ax=ax, c="g", ls="--", lw=1, label='L-S')
+        long_short.plot(ax=ax, c="g", ls="--", lw=1, label='L-S', grid=True)
     ax.legend(loc='upper left')
     ax.set_xlabel('')
     for v in axvlines:
