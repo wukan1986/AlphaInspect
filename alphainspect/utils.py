@@ -1,5 +1,5 @@
 import math
-from typing import Dict
+from typing import Dict, Sequence
 
 import numpy as np
 import pandas as pd
@@ -245,3 +245,14 @@ def symmetric_orthogonal(matrix):
     orthogonal_matrix = np.linalg.qr(sorted_eigenvectors)[0]
 
     return orthogonal_matrix
+
+
+def row_unstack(df_pl: pl.DataFrame, index: Sequence[str], columns: Sequence[str]) -> pd.DataFrame:
+    """一行值堆叠成一个矩阵"""
+    return pd.DataFrame(df_pl.to_numpy().reshape(len(index), len(columns)),
+                        index=index, columns=columns)
+
+
+def index_split_unstack(s: pd.Series, split_by: str = '__'):
+    s.index = pd.MultiIndex.from_tuples(map(lambda x: tuple(x.split(split_by)), s.index))
+    return s.unstack()

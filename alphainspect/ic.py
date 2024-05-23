@@ -12,7 +12,7 @@ from sklearn.feature_selection import mutual_info_regression
 from statsmodels import api as sm
 
 from alphainspect import _DATE_
-from alphainspect.utils import plot_heatmap, get_row_col, select_by_suffix, plot_hist
+from alphainspect.utils import plot_heatmap, get_row_col, select_by_suffix, plot_hist, index_split_unstack
 
 
 def rank_ic(a: str, b: str) -> Expr:
@@ -75,12 +75,6 @@ def calc_ic_ir(df_pl: pl.DataFrame) -> pl.DataFrame:
 def calc_ic_corr(df_pl: pl.DataFrame) -> pd.DataFrame:
     """由于numpy版不能很好的处理空值，所以用pandas版"""
     return df_pl.to_pandas().corr(method="pearson")
-
-
-def row_unstack(df_pl: pl.DataFrame, factors: Sequence[str], forward_returns: Sequence[str]) -> pd.DataFrame:
-    """一行值堆叠成一个矩阵"""
-    return pd.DataFrame(df_pl.to_numpy().reshape(len(factors), len(forward_returns)),
-                        index=factors, columns=forward_returns)
 
 
 def plot_ic_ts(df_pl: pl.DataFrame, col: str,
@@ -182,10 +176,12 @@ def create_ic2_sheet(df_pl: pl.DataFrame, factors: Sequence[str], forward_return
     用于分析相似因子在不同持有期下的IC信息
     """
     df_pl = calc_ic(df_pl, factors, forward_returns)
-    df_ic = calc_ic_mean(df_pl)
-    df_ir = calc_ic_ir(df_pl)
-    df_ic = row_unstack(df_ic, factors, forward_returns)
-    df_ir = row_unstack(df_ir, factors, forward_returns)
+    df_ic = calc_ic_mean(df_pl).to_pandas().iloc[0]
+    df_ir = calc_ic_ir(df_pl).to_pandas().iloc[0]
+
+    df_ic = index_split_unstack(df_ic)
+    df_ir = index_split_unstack(df_ir)
+
     logger.info('Mean IC: {} \n{}', '=' * 60, df_ic)
     logger.info('IC_IR: {} \n{}', '=' * 60, df_ir)
 
