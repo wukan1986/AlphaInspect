@@ -59,9 +59,9 @@ def with_factor_quantile(df_pl: pl.DataFrame, factor: str, quantiles: int = 10, 
     F = pl.col(factor)
 
     def _func_cs(df: pl.DataFrame):
-        return df.with_columns([
-            rank_qcut(F, quantiles).alias(factor_quantile),
-        ])
+        return df.with_columns(
+            rank_qcut(F, quantiles).alias(factor_quantile)
+        )
 
     # 将nan改成null
     df_pl = df_pl.with_columns(F.fill_nan(None))
@@ -107,27 +107,6 @@ def with_factor_top_k(df_pl: pl.DataFrame, factor: str, top_k: int = 10, group_n
         return df_pl.group_by(_DATE_).map_groups(_func_cs)
     else:
         return df_pl.group_by(by=[_DATE_, group_name]).map_groups(_func_cs)
-
-
-def with_quantile_tradable(df_pl: pl.DataFrame, factor_quantile: str, next_doji: str = 'NEXT_DOJI') -> pl.DataFrame:
-    """是否可以交易，将不可产易的分到其它分组
-
-    Parameters
-    ----------
-    df_pl: pl.DataFrame
-    factor_quantile: str
-        分组名
-    next_doji: str
-        明日涨跌停。修改factor_quantile到-1组
-
-    Returns
-    -------
-    pl.DataFrame
-
-    """
-    if next_doji is not None:
-        pl.when(pl.col(next_doji)).then(-1).otherwise(pl.col(factor_quantile)).name.keep(),
-    return df_pl
 
 
 def cumulative_returns(returns: np.ndarray, weights: np.ndarray,
