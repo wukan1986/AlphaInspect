@@ -13,11 +13,27 @@ from alphainspect._nb import _sub_portfolio_returns
 
 
 def rank_qcut(x: pl.Expr, q: int = 10) -> pl.Expr:
-    """结果与qcut基本一样，速度快三倍"""
+    """结果与qcut基本一样，速度快三倍。取值范围0~1"""
     # TODO 等官方提供原生功能
     a = x.rank(method='min') - 1.001
     b = pl.max_horizontal(x.count() - 1, 1)
     return (a / b * q).cast(pl.Int16)
+
+
+def rank_top(x: pl.Expr, k: int = 10) -> pl.Expr:
+    """前K后K, 取值范围0、1、2
+    0表示做空
+    2表示做多
+    1表示即不做多也不做空。如果数量<2K很大，导致某支即分到多也分到空，那就对冲成1
+    """
+    # 使用min是因为因子值可能一样，如果按dense可能导致结果随机。
+    # 由于重复值，组内数量可能大于k
+
+    # 值越大排第一,用来做多
+    a = x.rank(method='min', descending=True) <= k
+    # 值越小排第一，用来做空
+    b = x.rank(method='min', descending=False) <= k
+    return a.cast(pl.Int8) - b.cast(pl.Int8) + 1
 
 
 def with_factor_quantile(df_pl: pl.DataFrame, factor: str, quantiles: int = 10, group_name: Optional[str] = None, factor_quantile: str = _QUANTILE_) -> pl.DataFrame:
@@ -40,14 +56,52 @@ def with_factor_quantile(df_pl: pl.DataFrame, factor: str, quantiles: int = 10, 
     pl.DataFrame
 
     """
+    F = pl.col(factor)
 
     def _func_cs(df: pl.DataFrame):
         return df.with_columns([
-            rank_qcut(pl.col(factor), quantiles).alias(factor_quantile),
+            rank_qcut(F, quantiles).alias(factor_quantile),
         ])
 
     # 将nan改成null
-    df_pl = df_pl.with_columns(pl.col(factor).fill_nan(None))
+    df_pl = df_pl.with_columns(F.fill_nan(None))
+
+    if group_name is None:
+        return df_pl.group_by(_DATE_).map_groups(_func_cs)
+    else:
+        return df_pl.group_by(by=[_DATE_, group_name]).map_groups(_func_cs)
+
+
+def with_factor_top_k(df_pl: pl.DataFrame, factor: str, top_k: int = 10, group_name: Optional[str] = None, factor_quantile: str = _QUANTILE_) -> pl.DataFrame:
+    """前K后K的分组方法。一般用于截面股票数不多无法分位数分层的情况。
+
+    输出范围为0、1、2，分别为做空、对冲、做多
+    输出数量并不等于top_k，
+        - 遇到重复时会出现数量大于top_k，
+        - 遇到top_k>数量/2时，即在做多组又在做空组会划分到对冲组
+
+    Parameters
+    ----------
+    df_pl
+    factor
+    top_k:int
+    group_name
+    factor_quantile
+
+    Returns
+    -------
+    pl.DataFrame
+
+    """
+    F = pl.col(factor)
+
+    def _func_cs(df: pl.DataFrame):
+        return df.with_columns(
+            rank_top(F, top_k).alias(factor_quantile)
+        )
+
+    # 将nan改成null
+    df_pl = df_pl.with_columns(F.fill_nan(None))
 
     if group_name is None:
         return df_pl.group_by(_DATE_).map_groups(_func_cs)
