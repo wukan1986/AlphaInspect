@@ -26,14 +26,11 @@ def rank_top(x: pl.Expr, k: int = 10) -> pl.Expr:
     2表示做多
     1表示即不做多也不做空。如果数量<2K很大，导致某支即分到多也分到空，那就对冲成1
     """
-    # 使用min是因为因子值可能一样，如果按dense可能导致结果随机。
-    # 由于重复值，组内数量可能大于k
 
-    # 值越大排第一,用来做多
-    a = x.rank(method='min', descending=True) <= k
     # 值越小排第一，用来做空
-    b = x.rank(method='min', descending=False) <= k
-    return a.cast(pl.Int8) - b.cast(pl.Int8) + 1
+    a = x.rank(method='dense')
+    b = a.max() - a
+    return (b < k).cast(pl.Int8) - (a <= k).cast(pl.Int8) + 1
 
 
 def with_factor_quantile(df_pl: pl.DataFrame, factor: str, quantiles: int = 10, group_name: Optional[str] = None, factor_quantile: str = _QUANTILE_) -> pl.DataFrame:
