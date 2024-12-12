@@ -13,11 +13,29 @@ https://github.com/GauravSharma47/Drop-above-corr-threshold/blob/master/Drop_Abo
 from typing import List, Tuple
 
 import pandas as pd
+import polars as pl
 
 
-def drop_above_corr_thresh(df: pd.DataFrame, thresh: float = 0.85) -> Tuple[List[str], List[Tuple[str, str, float]]]:
-    # This function returns list of columns to drop whose correlation is above specified threshold.
-    corr = df.corr()
+def drop_above_corr_thresh(df: pl.DataFrame, thresh: float = 0.85) -> Tuple[List[str], List[Tuple[str, str, float]]]:
+    """This function returns list of columns to drop whose correlation is above specified threshold.
+
+    Parameters
+    ----------
+    df
+    thresh
+
+    Returns
+    -------
+    cols_to_drop
+        要删除的列
+    above_thresh_pairs
+        相关性高于阈值的列对
+
+    """
+    if not isinstance(df, pd.DataFrame):
+        df = df.to_pandas()
+
+    corr: pd.DataFrame = df.corr()
     cols = corr.columns.to_list()
     cols_to_drop = set()  # a set of columns which will be returned to the user to drop
     above_thresh_pairs = []  # pairs with correlation above specified threshold

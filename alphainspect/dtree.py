@@ -21,14 +21,14 @@ d3.select("#graph")
 """
 
 
-def plot_importance_box(models, plot_top_n: int = 20, importance_type: str = 'gain', ax=None):
+def plot_importance_box(models, plot_top_k: int = 20, importance_type: str = 'gain', ax=None):
     """多树模型特征重要性"""
     if len(models) == 1:
-        lgb.plot_importance(models[0], importance_type=importance_type, max_num_features=plot_top_n, ax=ax)
+        lgb.plot_importance(models[0], importance_type=importance_type, max_num_features=plot_top_k, ax=ax)
         return
 
-    # when plot_top_n < 0, the last plot_top features will be shown
-    assert plot_top_n != 0
+    # when plot_top_k < 0, the last plot_top features will be shown
+    assert plot_top_k != 0
 
     importance_df = []
     for i, model in enumerate(models):
@@ -41,10 +41,10 @@ def plot_importance_box(models, plot_top_n: int = 20, importance_type: str = 'ga
     sorted_indices = importance_df.mean(axis=0).sort_values(ascending=False).index
     sorted_importance_df = importance_df.loc[:, sorted_indices]
     # plot top N features
-    if plot_top_n > 0:
-        plot_cols = sorted_importance_df.columns[:plot_top_n]
+    if plot_top_k > 0:
+        plot_cols = sorted_importance_df.columns[:plot_top_k]
     else:
-        plot_cols = sorted_importance_df.columns[plot_top_n:]
+        plot_cols = sorted_importance_df.columns[plot_top_k:]
 
     ax.grid()
     ax.set_xscale('log')
@@ -58,8 +58,9 @@ def plot_importance_box(models, plot_top_n: int = 20, importance_type: str = 'ga
 def plot_metric_errorbar(models, metric: str, ax=None):
     """多树模型评估函数图
 
-    Notes
-    -----
+    Examples
+    --------
+    ```python
     evals_result = {}  # to record eval results for plotting
     callbacks = [
         record_evaluation(evals_result),
@@ -67,6 +68,7 @@ def plot_metric_errorbar(models, metric: str, ax=None):
 
     # 非常重要，否则训练结果不保存
     model.evals_result_ = deepcopy(evals_result)
+    ```
 
     """
     if len(models) == 1:

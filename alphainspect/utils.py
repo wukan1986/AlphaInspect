@@ -1,109 +1,93 @@
-import math
-from typing import Dict, Sequence, Optional
+from typing import Sequence, Optional
 
 import numpy as np
 import pandas as pd
 import polars as pl
-import seaborn as sns
-from loguru import logger
 from polars import selectors as cs
+from polars_ta.wq import cs_qcut, cs_top_bottom
 
 from alphainspect import _QUANTILE_, _DATE_
 from alphainspect._nb import _sub_portfolio_returns
 
 
-def rank_qcut(x: pl.Expr, q: int = 10) -> pl.Expr:
-    """结果与qcut基本一样，速度快三倍。取值范围0~1"""
-    # TODO 等官方提供原生功能
-    a = x.rank(method='min') - 1.001
-    b = pl.max_horizontal(x.count() - 1, 1)
-    return (a / b * q).cast(pl.Int16)
-
-
-def rank_top(x: pl.Expr, k: int = 10) -> pl.Expr:
-    """前K后K, 取值范围0、1、2
-    0表示做空
-    2表示做多
-    1表示即不做多也不做空。如果数量<2K很大，导致某支即分到多也分到空，那就对冲成1
-    """
-
-    # 值越小排第一，用来做空
-    a = x.rank(method='dense')
-    b = a.max() - a
-    return (b < k).cast(pl.Int8) - (a <= k).cast(pl.Int8) + 1
-
-
-def with_factor_quantile(df_pl: pl.DataFrame, factor: str, quantiles: int = 10, group_name: Optional[str] = None, factor_quantile: str = _QUANTILE_) -> pl.DataFrame:
-    """添加因子分位数信息。隐含了按日期分组
+def with_factor_quantile(df: pl.DataFrame, factor: str, quantiles: int = 10, group_name: Optional[str] = None, factor_quantile: str = _QUANTILE_) -> pl.DataFrame:
+    """添加因子分位数信息
 
     Parameters
     ----------
-    df_pl
-    factor: str
+    df
+    factor
         因子名
-    quantiles: int
+    quantiles
         分层数
-    group_name:str
+    group_name
         条件分组
-    factor_quantile:str
+    factor_quantile
         分组名
 
-    Returns
-    -------
-    pl.DataFrame
-
     """
-    F = pl.col(factor)
+    by = [_DATE_]
+    if group_name is not None:
+        if isinstance(group_name, str):
+            group_name = [group_name]
+        by.extend(group_name)
 
-    def _func_cs(df: pl.DataFrame):
-        return df.with_columns(
-            rank_qcut(F, quantiles).alias(factor_quantile)
-        )
-
-    # 将nan改成null
-    df_pl = df_pl.with_columns(F.fill_nan(None))
-
-    if group_name is None:
-        return df_pl.group_by(_DATE_).map_groups(_func_cs)
-    else:
-        return df_pl.group_by(by=[_DATE_, group_name]).map_groups(_func_cs)
+    df = df.with_columns(cs_qcut(pl.col(factor).fill_nan(None), quantiles).over(*by).alias(factor_quantile))
+    return df
 
 
-def with_factor_top_k(df_pl: pl.DataFrame, factor: str, top_k: int = 10, group_name: Optional[str] = None, factor_quantile: str = _QUANTILE_) -> pl.DataFrame:
-    """前K后K的分组方法。一般用于截面股票数不多无法分位数分层的情况。
-
-    输出范围为0、1、2，分别为做空、对冲、做多
-    输出数量并不等于top_k，
-        - 遇到重复时会出现数量大于top_k，
-        - 遇到top_k>数量/2时，即在做多组又在做空组会划分到对冲组
+def with_factor_top_k(df: pl.DataFrame, factor: str, top_k: int = 10, group_name: Optional[str] = None, factor_quantile: str = _QUANTILE_) -> pl.DataFrame:
+    """前K后K的分层方法。一般用于截面股票数不多无法分位数分层的情况。
 
     Parameters
     ----------
-    df_pl
+    df
     factor
-    top_k:int
+    top_k
     group_name
     factor_quantile
 
     Returns
     -------
     pl.DataFrame
+        输出范围为0、1、2，分别为做空、对冲、做多。输出数量并不等于top_k，
+
+        - 遇到重复时会出现数量大于top_k，
+        - 遇到top_k>数量/2时，即在做多组又在做空组会划分到对冲组
 
     """
-    F = pl.col(factor)
+    by = [_DATE_]
+    if group_name is not None:
+        if isinstance(group_name, str):
+            group_name = [group_name]
+        by.extend(group_name)
 
-    def _func_cs(df: pl.DataFrame):
-        return df.with_columns(
-            rank_top(F, top_k).alias(factor_quantile)
-        )
+    df = df.with_columns(cs_top_bottom(pl.col(factor).fill_nan(None), top_k).over(*by).alias(factor_quantile))
+    df = df.with_columns(pl.col(factor_quantile) + 1)
+    return df
 
-    # 将nan改成null
-    df_pl = df_pl.with_columns(F.fill_nan(None))
 
-    if group_name is None:
-        return df_pl.group_by(_DATE_).map_groups(_func_cs)
-    else:
-        return df_pl.group_by(by=[_DATE_, group_name]).map_groups(_func_cs)
+def with_industry(df: pl.DataFrame, industry_name: str):
+    """添加行业列
+
+    Parameters
+    ----------
+    df
+    industry_name
+        行业名称。哑元变量扩充
+
+    Notes
+    -----
+    `to_dummies(drop_first=True)`丢弃哪个字段是随机的，非常不友好，只能在行业中性化时动态修改代码
+
+    """
+    df = df.with_columns([
+        # 行业处理，由浮点改成整数
+        pl.col(industry_name).fill_nan(None).fill_null(0).cast(pl.UInt32),
+    ])
+
+    df = df.with_columns(df.to_dummies(industry_name, drop_first=True))
+    return df
 
 
 def cumulative_returns(returns: np.ndarray, weights: np.ndarray,
@@ -197,68 +181,14 @@ def cumulative_returns(returns: np.ndarray, weights: np.ndarray,
         return out
 
 
-def plot_heatmap(df_pd: pd.DataFrame,
-                 *,
-                 title='Mean IC',
-                 ax=None) -> None:
-    """多个IC的热力图"""
-    # https://matplotlib.org/2.0.2/examples/color/colormaps_reference.html
-    ax = sns.heatmap(df_pd, annot=True, cmap='RdYlGn_r', cbar=False, annot_kws={"size": 7}, ax=ax)
-    ax.set_title(title)
-    ax.set_xlabel('')
-
-
-def get_row_col(count: int):
-    """通过图总数，得到二维数量"""
-    len_sqrt = math.sqrt(count)
-    row, col = math.ceil(len_sqrt), math.floor(len_sqrt)
-    if row * col < count:
-        col += 1
-    return row, col
-
-
-def select_by_suffix(df_pl: pl.DataFrame, name: str) -> pl.DataFrame:
+def select_by_suffix(df: pl.DataFrame, name: str) -> pl.DataFrame:
     """选择指定后缀的所有因子"""
-    return df_pl.select(cs.ends_with(name).name.map(lambda x: x[:-len(name)]))
+    return df.select(cs.ends_with(name).name.map(lambda x: x[:-len(name)]))
 
 
-def select_by_prefix(df_pl: pl.DataFrame, name: str) -> pl.DataFrame:
+def select_by_prefix(df: pl.DataFrame, name: str) -> pl.DataFrame:
     """选择指定前缀的所有因子"""
-    return df_pl.select(cs.starts_with(name).name.map(lambda x: x[len(name):]))
-
-
-def plot_hist(df_pl: pl.DataFrame, col: str,
-              *,
-              kde: bool = False,  # 启用kde后速度慢了非常多
-              ax=None) -> Dict[str, float]:
-    """直方图
-
-    Examples
-    --------
-    >>> plot_hist(df_pl, 'RETURN_OO_1')
-    """
-    a = df_pl[col].to_pandas().replace([-np.inf, np.inf], np.nan).dropna()
-
-    mean = a.mean()
-    std = a.std(ddof=0)
-    skew = a.skew()
-    kurt = a.kurt()
-
-    ax = sns.histplot(a,
-                      bins=50, kde=kde,
-                      stat="density", kde_kws=dict(cut=3),
-                      alpha=.4, edgecolor=(1, 1, 1, .4),
-                      ax=ax)
-
-    ax.axvline(x=mean, c="r", ls="--", lw=1)
-    ax.axvline(x=mean + std * 3, c="r", ls="--", lw=1)
-    ax.axvline(x=mean - std * 3, c="r", ls="--", lw=1)
-    title = f"{col},mean={mean:0.4f},std={std:0.4f},skew={skew:0.4f},kurt={kurt:0.4f}"
-    logger.info(title)
-    ax.set_title(title)
-    ax.set_xlabel('')
-
-    return {'mean': mean, 'std': std, 'skew': skew, 'kurt': kurt}
+    return df.select(cs.starts_with(name).name.map(lambda x: x[len(name):]))
 
 
 # =================================
@@ -277,9 +207,9 @@ def symmetric_orthogonal(matrix):
     return orthogonal_matrix
 
 
-def row_unstack(df_pl: pl.DataFrame, index: Sequence[str], columns: Sequence[str]) -> pd.DataFrame:
+def row_unstack(df: pl.DataFrame, index: Sequence[str], columns: Sequence[str]) -> pd.DataFrame:
     """一行值堆叠成一个矩阵"""
-    return pd.DataFrame(df_pl.to_numpy().reshape(len(index), len(columns)),
+    return pd.DataFrame(df.to_numpy().reshape(len(index), len(columns)),
                         index=index, columns=columns)
 
 

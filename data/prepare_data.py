@@ -13,7 +13,9 @@ _N = 250 * 10
 _K = 500
 
 asset = [f's_{i:04d}' for i in range(_K)]
-date = pd.date_range('2015-1-1', periods=_N)
+date = pd.date_range('2018-1-1', periods=_N)
+
+np.random.seed(42)
 
 df = pd.DataFrame({
     'OPEN': np.cumprod(1 + np.random.uniform(-0.01, 0.01, size=(_N, _K)), axis=0).reshape(-1),
@@ -22,6 +24,8 @@ df = pd.DataFrame({
     'CLOSE': np.cumprod(1 + np.random.uniform(-0.01, 0.01, size=(_N, _K)), axis=0).reshape(-1),
     "FILTER": np.tri(_N, _K, k=-2).reshape(-1),
 }, index=pd.MultiIndex.from_product([date, asset], names=['date', 'asset'])).reset_index()
+
+print(df)
 
 # 向脚本输入数据
 df = pl.from_pandas(df)

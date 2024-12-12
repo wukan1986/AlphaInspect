@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import Sequence, List
+from typing import Sequence, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -8,6 +8,7 @@ from matplotlib import pyplot as plt
 from numpy.lib.stride_tricks import sliding_window_view
 
 from alphainspect import _QUANTILE_, _DATE_, _ASSET_
+from alphainspect.portfolio import calc_cum_return_by_quantile, plot_quantile_portfolio
 
 _REG_AROUND_ = r'^[+-]\d+$'
 _COL_AROUND_ = pl.col(_REG_AROUND_)
@@ -19,12 +20,12 @@ def make_around_columns(periods_before: int = 3, periods_after: int = 15) -> Lis
     return [f'{i:+02d}' for i in range(-periods_before, periods_after + 1)]
 
 
-def with_around_price(df_pl: pl.DataFrame, price: str, periods_before: int = 5, periods_after: int = 15) -> pl.DataFrame:
+def with_around_price(df: pl.DataFrame, price: str, periods_before: int = 5, periods_after: int = 15) -> pl.DataFrame:
     """添加事件前后复权价
 
     Parameters
     ----------
-    df_pl
+    df
     price
     periods_before
     periods_after
@@ -56,19 +57,19 @@ def with_around_price(df_pl: pl.DataFrame, price: str, periods_before: int = 5, 
         c = pl.from_numpy(b, schema=make_around_columns(periods_before, periods_after))
         return df.with_columns(c)
 
-    return df_pl.group_by(_ASSET_).map_groups(_func_ts).with_columns(_COL_AROUND_.fill_nan(None))
+    return df.group_by(_ASSET_).map_groups(_func_ts).with_columns(_COL_AROUND_.fill_nan(None))
 
 
-def plot_events_errorbar(df_pl: pl.DataFrame, factor_quantile: str = _QUANTILE_, ax=None) -> None:
+def plot_events_errorbar(df: pl.DataFrame, factor_quantile: str = _QUANTILE_, ax=None) -> None:
     """事件前后误差条"""
-    min_max = df_pl.select(pl.min(factor_quantile).alias('min'), pl.max(factor_quantile).alias('max'))
+    min_max = df.select(pl.min(factor_quantile).alias('min'), pl.max(factor_quantile).alias('max'))
     min_max = min_max.to_dicts()[0]
     _min, _max = min_max['min'], min_max['max']
 
-    df_pl = df_pl.select(factor_quantile, _COL_AROUND_)
-    mean_pl = df_pl.group_by(factor_quantile).agg(pl.mean(_REG_AROUND_)).sort(factor_quantile)
+    df = df.select(factor_quantile, _COL_AROUND_)
+    mean_pl = df.group_by(factor_quantile).agg(pl.mean(_REG_AROUND_)).sort(factor_quantile)
     mean_pd: pd.DataFrame = mean_pl.to_pandas().set_index(factor_quantile).T
-    std_pl = df_pl.group_by(factor_quantile).agg(pl.std(_REG_AROUND_)).sort(factor_quantile)
+    std_pl = df.group_by(factor_quantile).agg(pl.std(_REG_AROUND_)).sort(factor_quantile)
     std_pd: pd.DataFrame = std_pl.to_pandas().set_index(factor_quantile).T
 
     a = mean_pd.loc[:, _max]
@@ -80,34 +81,68 @@ def plot_events_errorbar(df_pl: pl.DataFrame, factor_quantile: str = _QUANTILE_,
     ax.set_title(f'Quantile {_max} errorbar')
 
 
-def plot_events_average(df_pl: pl.DataFrame, factor_quantile: str = _QUANTILE_, ax=None) -> None:
+def plot_events_average(df: pl.DataFrame, factor_quantile: str = _QUANTILE_, ax=None) -> None:
     """事件前后标准化后平均价"""
-    df_pl = df_pl.select(factor_quantile, _COL_AROUND_)
-    mean_pl = df_pl.group_by(factor_quantile).agg(pl.mean(_REG_AROUND_)).sort(factor_quantile)
+    df = df.select(factor_quantile, _COL_AROUND_)
+    mean_pl = df.group_by(factor_quantile).agg(pl.mean(_REG_AROUND_)).sort(factor_quantile)
     mean_pd: pd.DataFrame = mean_pl.to_pandas().set_index(factor_quantile).T
     mean_pd.plot.line(title='Average Cumulative Returns by Quantile', ax=ax, cmap='coolwarm', lw=1)
     ax.axvline(x=mean_pd.index.get_loc('+0'), c="r", ls="--", lw=1)
     ax.set_xlabel('')
 
 
-def plot_events_count(df_pl: pl.DataFrame, axvlines: Sequence[str] = (), ax=None) -> None:
+def plot_events_count(df: pl.DataFrame, axvlines: Sequence[str] = (), ax=None) -> None:
     """事件发生次数"""
-    df_pl = df_pl.group_by(_DATE_).count().sort(_DATE_)
-    df_pd = df_pl.to_pandas().set_index(_DATE_)
+    df = df.group_by(_DATE_).count().sort(_DATE_)
+    df_pd = df.to_pandas().set_index(_DATE_)
     df_pd.plot.line(title='Distribution of events', ax=ax, lw=1, grid=True)
     ax.set_xlabel('')
     for v in axvlines:
         ax.axvline(x=v, c="b", ls="--", lw=1)
 
 
-def create_events_sheet(df_pl: pl.DataFrame, condition: pl.Expr, factor_quantile: str = _QUANTILE_, axvlines: Sequence[str] = ()):
+def plot_events_ratio(df: pl.DataFrame, fwd_ret_1: str, factor_quantile: str = _QUANTILE_, axvlines: Sequence[str] = (), ax=None) -> None:
+    """事件胜率"""
+    df = df.group_by(_DATE_, factor_quantile).agg((pl.col(fwd_ret_1) > 0).mean()).sort(_DATE_)
+    df_pd = df.to_pandas().set_index([_DATE_, factor_quantile])[fwd_ret_1].unstack()
+    df_pd.plot.line(title='Win Ratio of events', ax=ax, lw=1, grid=True)
+    ax.set_xlabel('')
+    for v in axvlines:
+        ax.axvline(x=v, c="b", ls="--", lw=1)
+
+
+def create_events_sheet(df: pl.DataFrame,
+                        condition: Optional[pl.Expr],
+                        fwd_ret_1: str, factor_quantile: str = _QUANTILE_, axvlines: Sequence[str] = ()):
+    """事件分析图表
+
+    Parameters
+    ----------
+    df
+    condition
+        条件，分析前先过滤。
+    fwd_ret_1:str
+        用于记算累计收益的1期远期收益率
+    factor_quantile:str
+        分层。可以一层，也可以多层。
+    axvlines
+
+    """
+    # 可在外部提前过滤
+    if condition is not None:
+        df = df.filter(condition)
     # 一定要过滤空值
-    df_pl = df_pl.filter(pl.col(factor_quantile).is_not_null()).filter(condition)
+    df = df.filter(pl.col(factor_quantile).is_not_null())
 
-    fig, axes = plt.subplots(3, 1, figsize=(9, 12))
+    fig, axes = plt.subplots(3, 2, figsize=(9, 12))
+    axes = axes.flatten()
 
-    plot_events_count(df_pl, ax=axes[0], axvlines=axvlines)
-    plot_events_average(df_pl, factor_quantile=factor_quantile, ax=axes[1])
-    plot_events_errorbar(df_pl, factor_quantile=factor_quantile, ax=axes[2])
+    plot_events_average(df, factor_quantile=factor_quantile, ax=axes[0])
+    plot_events_errorbar(df, factor_quantile=factor_quantile, ax=axes[1])
+    plot_events_ratio(df, fwd_ret_1, factor_quantile=factor_quantile, axvlines=axvlines, ax=axes[2])
+    # 画累计收益
+    ret, cum, avg, std = calc_cum_return_by_quantile(df, fwd_ret_1, factor_quantile)
+    plot_quantile_portfolio(cum, fwd_ret_1, axvlines=axvlines, ax=axes[3])
+    plot_events_count(df, axvlines=axvlines, ax=axes[4])
 
     fig.tight_layout()

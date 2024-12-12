@@ -8,14 +8,15 @@ from loguru import logger
 from matplotlib import pyplot as plt
 
 from alphainspect import _QUANTILE_, _DATE_, _ASSET_, _WEIGHT_
-from alphainspect.utils import cumulative_returns, plot_heatmap
+from alphainspect.utils import cumulative_returns
+from alphainspect.plotting import plot_heatmap
 
 
-def _calc_cum_return_by_quantile(df_pl: pl.DataFrame, fwd_ret_1: str, period: int = 5, factor_quantile: str = _QUANTILE_) -> pd.DataFrame:
+def _calc_cum_return_by_quantile(df: pl.DataFrame, fwd_ret_1: str, period: int = 5, factor_quantile: str = _QUANTILE_) -> pd.DataFrame:
     """分层计算收益。分成N层，层内等权"""
-    q_max = df_pl.select(pl.max(factor_quantile)).to_series(0)[0]
-    rr = df_pl.pivot(index=_DATE_, columns=_ASSET_, values=fwd_ret_1, aggregate_function='first', sort_columns=True).sort(_DATE_)
-    qq = df_pl.pivot(index=_DATE_, columns=_ASSET_, values=factor_quantile, aggregate_function='first', sort_columns=True).sort(_DATE_)
+    q_max = df.select(pl.max(factor_quantile)).to_series(0)[0]
+    rr = df.pivot(index=_DATE_, columns=_ASSET_, values=fwd_ret_1, aggregate_function='first', sort_columns=True).sort(_DATE_)
+    qq = df.pivot(index=_DATE_, columns=_ASSET_, values=factor_quantile, aggregate_function='first', sort_columns=True).sort(_DATE_)
 
     out = pd.DataFrame(index=rr[_DATE_])
     rr = rr.select(pl.exclude(_DATE_)).to_numpy() + 1  # 日收益
@@ -117,7 +118,8 @@ def calc_cum_return_weights(df_pl: pl.DataFrame, fwd_ret_1: str, period: int = 1
     return out
 
 
-def plot_quantile_portfolio(df_pd: pd.DataFrame, fwd_ret_1: str,
+def plot_quantile_portfolio(df_pd: pd.DataFrame,
+                            fwd_ret_1: str,
                             long_short=None,
                             *,
                             axvlines=None, ax=None) -> None:

@@ -1,6 +1,6 @@
 import sys
 
-from expr_codegen.tool import codegen_exec
+from expr_codegen import codegen_exec
 from polars_ta.prefix.wq import ts_max, ts_min, ts_mean, ts_std_dev, ts_returns
 
 

@@ -1,19 +1,18 @@
 import sys
 
-from expr_codegen.tool import codegen_exec
-from polars_ta.prefix.wq import ts_delay
+from expr_codegen import codegen_exec
 
 
 def _code_block_1():
     # 远期收益率,由于平移过,含未来数据，只能用于打标签
-    _OC_01 = ts_delay(CLOSE, -1) / ts_delay(OPEN, -1)
-    _CC_01 = ts_delay(CLOSE, -1) / CLOSE
-    _CO_01 = ts_delay(OPEN, -1) / CLOSE
-    _OO_01 = ts_delay(OPEN, -2) / ts_delay(OPEN, -1)
+    _OC_01 = CLOSE[-1] / OPEN[-1]
+    _CC_01 = CLOSE[-1] / CLOSE
+    _CO_01 = OPEN[-1] / CLOSE
+    _OO_01 = OPEN[-2] / OPEN[-1]
 
-    _OO_02 = ts_delay(OPEN, -3) / ts_delay(OPEN, -1)
-    _OO_05 = ts_delay(OPEN, -6) / ts_delay(OPEN, -1)
-    _OO_10 = ts_delay(OPEN, -11) / ts_delay(OPEN, -1)
+    _OO_02 = OPEN[-3] / OPEN[-1]
+    _OO_05 = OPEN[-6] / OPEN[-1]
+    _OO_10 = OPEN[-11] / OPEN[-1]
 
     # 一期收益率
     RETURN_OC_01 = _OC_01 - 1

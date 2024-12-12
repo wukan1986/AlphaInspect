@@ -1,3 +1,11 @@
+"""
+Notebook报告
+
+会生成多个html文件。效果好
+1. 多因子比较时要翻看多个文件比较辛苦
+2. 每个进程要重新加载数据，比较占用IO资源
+
+"""
 # %%
 import os
 import sys
@@ -20,7 +28,7 @@ def func(factor):
                              # 以下参数转成环境变量自动变成大写
                              factor=factor,
                              fwd_ret_1='RETURN_OO_05',
-                             forward_return='RETURN_OO_05')
+                             )
 
     return ret_code
 
