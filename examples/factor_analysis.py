@@ -12,6 +12,9 @@ import os
 import sys
 from pathlib import Path
 
+from alphainspect.portfolio import create_portfolio_sheet
+from alphainspect.turnover import create_turnover_sheet
+
 # 修改当前目录到上层目录，方便跨不同IDE中使用
 pwd = str(Path(__file__).parents[1])
 os.chdir(pwd)
@@ -32,8 +35,8 @@ factor = 'SMA_010'  # 考察因子
 forward_returns = ['RETURN_CC_01', 'RETURN_OO_01', 'RETURN_OO_02', 'RETURN_OO_05']  # 同一因子，不同持有期对比
 
 # %% 因子值分层
-# df = with_factor_quantile(df, factor, quantiles=10, factor_quantile='_fq_1')
-df = with_factor_top_k(df, factor, top_k=20, factor_quantile='_fq_1')
+df = with_factor_quantile(df, factor, quantiles=10, factor_quantile='_fq_1')
+# df = with_factor_top_k(df, factor, top_k=20, factor_quantile='_fq_1')
 
 # %% 分组后因子值的描述性统计
 create_describe1_sheet(df, [factor], factor_quantile='_fq_1')
@@ -49,7 +52,10 @@ for fwd_ret_1 in forward_returns[0:1]:
 
 # %% 画比较全的图
 create_3x2_sheet(df, factor, fwd_ret_1, factor_quantile='_fq_1', axvlines=axvlines)
-
+# %% 绩效曲线图
+create_portfolio_sheet(df, fwd_ret_1, factor_quantile='_fq_1', axvlines=axvlines)
+# %% 换手率
+create_turnover_sheet(df, factor, periods=(1, 5, 10, 20), factor_quantile='_fq_1', axvlines=axvlines)
 # %%
 plt.show()
 

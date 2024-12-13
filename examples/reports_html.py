@@ -1,3 +1,10 @@
+"""
+HTML报告
+
+省去了Notebook的转换问题，速度更快一点点，同时可以将统计结果放在最开头
+支持复杂的参数传递
+
+"""
 # %%
 import os
 import sys
@@ -17,8 +24,9 @@ import pandas as pd
 import polars as pl
 from loguru import logger
 
-from alphainspect.reports import create_1x3_sheet, fig_to_img, html_template
-from alphainspect.utils import with_factor_quantile
+from alphainspect.reports import fig_to_img, html_template
+from alphainspect.reports import create_1x3_sheet, create_2x2_sheet, create_3x2_sheet  # noqa
+from alphainspect.utils import with_factor_quantile, with_factor_top_k  # noqa
 
 INPUT1_PATH = r'data/data.parquet'
 OUTPUT_PATH = r'output'
@@ -31,6 +39,7 @@ def func(kv):
     axvlines = ('2020-01-01', '2024-01-01',)
     fwd_ret_1 = 'RETURN_OO_05'  # 计算净值用的1日收益率
     quantiles = 5
+    top_k = 20
 
     tbl = {}
     df_mean = {}
@@ -41,14 +50,17 @@ def func(kv):
     df = pl.read_parquet(INPUT1_PATH)
     for factor in factors:
         df = with_factor_quantile(df, factor, quantiles=quantiles, factor_quantile=f'_fq_{factor}')
+        # df = with_factor_top_k(df, factor, top_k=top_k, factor_quantile=f'_fq_{factor}')
 
     for factor in factors:
         fig, ic_dict, hist_dict, cum, avg, std = create_1x3_sheet(df, factor, fwd_ret_1, factor_quantile=f'_fq_{factor}', axvlines=axvlines)
+        # fig, ic_dict, hist_dict, cum, avg, std = create_2x2_sheet(df, factor, fwd_ret_1, factor_quantile=f'_fq_{factor}', axvlines=axvlines)
+        # fig, ic_dict, hist_dict, cum, avg, std = create_3x2_sheet(df, factor, fwd_ret_1, factor_quantile=f'_fq_{factor}', axvlines=axvlines)
 
-        s1 = cum.iloc[-1]
+        s1 = cum.to_pandas().set_index('date').iloc[-1]
         df_last[factor] = s1
-        df_mean[factor] = avg
-        df_std[factor] = std
+        df_mean[factor] = avg.to_pandas().iloc[0]
+        df_std[factor] = std.to_pandas().iloc[0]
 
         s2 = {'monotonic': np.sign(s1.diff()).sum()}
         s3 = pd.Series(s2 | ic_dict | hist_dict)

@@ -23,9 +23,9 @@ from matplotlib import pyplot as plt
 
 from alphainspect import _QUANTILE_
 from alphainspect.ic import calc_ic
+from alphainspect.plotting import plot_hist, plot_heatmap_monthly_mean, plot_ts
 from alphainspect.portfolio import calc_cum_return_by_quantile, plot_quantile_portfolio
 from alphainspect.turnover import calc_auto_correlation, calc_quantile_turnover, plot_factor_auto_correlation, plot_turnover_quantile
-from alphainspect.plotting import plot_hist, plot_heatmap_monthly_mean, plot_ts
 
 html_template = """
 <html>
@@ -122,7 +122,7 @@ def create_2x2_sheet(df: pl.DataFrame,
                      *,
                      factor_quantile: str = _QUANTILE_,
                      figsize=(12, 9),
-                     axvlines: Sequence[str] = ()) -> None:
+                     axvlines: Sequence[str] = ()) -> Tuple[Any, Any, Any, Any, Any, Any]:
     """画2*2的图表。含IC时序、IC直方图、IC热力图、累积收益图
 
     Parameters
@@ -144,18 +144,19 @@ def create_2x2_sheet(df: pl.DataFrame,
     # logger.info('计算IC')
     df_ic = calc_ic(df, [factor], [fwd_ret_1])
     col = df_ic.columns[1]
-    plot_ts(df_ic, col, axvlines=axvlines, ax=axes[0])
+    ic_dict = plot_ts(df_ic, col, axvlines=axvlines, ax=axes[0])
     plot_heatmap_monthly_mean(df_ic, col, ax=axes[1])
 
     # 画因子直方图
-    plot_hist(df, factor, ax=axes[2])
+    hist_dict = plot_hist(df, factor, ax=axes[2])
 
     # 画累计收益
     ret, cum, avg, std = calc_cum_return_by_quantile(df, fwd_ret_1, factor_quantile)
-    long_short = (ret.iloc[:, -1] - ret.iloc[:, 0]).cumsum()
-    plot_quantile_portfolio(cum, fwd_ret_1, long_short, axvlines=axvlines, ax=axes[3])
+    plot_quantile_portfolio(cum, fwd_ret_1, axvlines=axvlines, ax=axes[3])
 
     fig.tight_layout()
+
+    return fig, ic_dict, hist_dict, cum, avg, std
 
 
 def create_1x3_sheet(df: pl.DataFrame,
@@ -189,8 +190,7 @@ def create_1x3_sheet(df: pl.DataFrame,
 
     # 画累计收益
     ret, cum, avg, std = calc_cum_return_by_quantile(df, fwd_ret_1, factor_quantile)
-    long_short = (ret.iloc[:, -1] - ret.iloc[:, 0]).cumsum()
-    plot_quantile_portfolio(cum, fwd_ret_1, long_short, axvlines=axvlines, ax=axes[1])
+    plot_quantile_portfolio(cum, fwd_ret_1, axvlines=axvlines, ax=axes[1])
 
     # 画因子直方图
     hist_dict = plot_hist(df, factor, ax=axes[2])
@@ -207,7 +207,7 @@ def create_3x2_sheet(df: pl.DataFrame,
                      factor_quantile: str = _QUANTILE_,
                      periods: Sequence[int] = (1, 5, 10, 20),
                      figsize=(12, 14),
-                     axvlines: Sequence[str] = ()) -> None:
+                     axvlines: Sequence[str] = ()) -> Tuple[Any, Any, Any, Any, Any, Any]:
     """画2*3图
 
     Parameters
@@ -228,15 +228,14 @@ def create_3x2_sheet(df: pl.DataFrame,
     # logger.info('计算IC')
     df_ic = calc_ic(df, [factor], [fwd_ret_1])
     col = df_ic.columns[1]
-    plot_ts(df_ic, col, axvlines=axvlines, ax=axes[0, 0])
-    plot_hist(df_ic, col, ax=axes[0, 1])
+    ic_dict = plot_ts(df_ic, col, axvlines=axvlines, ax=axes[0, 0])
+    hist_dict = plot_hist(df_ic, col, ax=axes[0, 1])
     plot_heatmap_monthly_mean(df_ic, col, ax=axes[1, 0])
 
     # 画净值曲线
     # logger.info('计算累计收益')
     ret, cum, avg, std = calc_cum_return_by_quantile(df, fwd_ret_1, factor_quantile)
-    long_short = (ret.iloc[:, -1] - ret.iloc[:, 0]).cumsum()
-    plot_quantile_portfolio(cum, fwd_ret_1, long_short, axvlines=axvlines, ax=axes[1, 1])
+    plot_quantile_portfolio(cum, fwd_ret_1, axvlines=axvlines, ax=axes[1, 1])
 
     # 画换手率
     # logger.info('计算换手率')
@@ -248,3 +247,5 @@ def create_3x2_sheet(df: pl.DataFrame,
     plot_turnover_quantile(df_turnover, quantile=q_max, factor_quantile=factor_quantile, periods=periods, axvlines=axvlines, ax=axes[2, 1])
 
     fig.tight_layout()
+
+    return fig, ic_dict, hist_dict, cum, avg, std

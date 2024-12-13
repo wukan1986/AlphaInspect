@@ -10,6 +10,7 @@ from numpy.lib.stride_tricks import sliding_window_view
 from alphainspect import _QUANTILE_, _DATE_, _ASSET_
 from alphainspect.portfolio import calc_cum_return_by_quantile, plot_quantile_portfolio
 
+# 以+-开头的纯数字，希望不会与其他列名冲突
 _REG_AROUND_ = r'^[+-]\d+$'
 _COL_AROUND_ = pl.col(_REG_AROUND_)
 
@@ -21,17 +22,15 @@ def make_around_columns(periods_before: int = 3, periods_after: int = 15) -> Lis
 
 
 def with_around_price(df: pl.DataFrame, price: str, periods_before: int = 5, periods_after: int = 15) -> pl.DataFrame:
-    """添加事件前后复权价
+    """添加前后复权价
 
     Parameters
     ----------
     df
     price
+        收盘价或均价
     periods_before
     periods_after
-
-    Returns
-    -------
 
     """
 
@@ -61,7 +60,7 @@ def with_around_price(df: pl.DataFrame, price: str, periods_before: int = 5, per
 
 
 def plot_events_errorbar(df: pl.DataFrame, factor_quantile: str = _QUANTILE_, ax=None) -> None:
-    """事件前后误差条"""
+    """事件前后误差条。只显示最大分组"""
     min_max = df.select(pl.min(factor_quantile).alias('min'), pl.max(factor_quantile).alias('max'))
     min_max = min_max.to_dicts()[0]
     _min, _max = min_max['min'], min_max['max']
@@ -72,6 +71,7 @@ def plot_events_errorbar(df: pl.DataFrame, factor_quantile: str = _QUANTILE_, ax
     std_pl = df.group_by(factor_quantile).agg(pl.std(_REG_AROUND_)).sort(factor_quantile)
     std_pd: pd.DataFrame = std_pl.to_pandas().set_index(factor_quantile).T
 
+    # 取最大分组
     a = mean_pd.loc[:, _max]
     b = std_pd.loc[:, _max]
 

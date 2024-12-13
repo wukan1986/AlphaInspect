@@ -18,10 +18,10 @@ pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --upgrade alphainspect  
         1. 多期收期率。如果移动因子，会导致一个因子就要移动多次
         2. 因子一般成百上千，全移动要的工作量非常大，而收益率则少很多
     4. 推荐大家使用`expr_codegen`和`polars_ta`等项目
-2. 运行`examples/demo1.py`示例弹出简易图表
-3. 运行`examples/demo2.py`示例弹出完整图表
-4. 运行`examples/demo3.py`示例多进程并行输出HTML网页报表
-5. 运行`examples/demo4.py`示例事件图表
+2. 运行`examples/factor_analysis.py`示例单因子分析
+3. 运行`examples/reports_html.py`示例多进程并行输出HTML网页报表
+4. 运行`examples/reports_notebook.py`示例多进程并行转Notebook报表
+5. 运行`examples/events_study.py`示例事件分析
 
 ## 部分图示
 

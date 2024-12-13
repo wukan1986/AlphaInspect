@@ -23,6 +23,7 @@ def drop_above_corr_thresh(df: pl.DataFrame, thresh: float = 0.85) -> Tuple[List
     ----------
     df
     thresh
+        阈值
 
     Returns
     -------

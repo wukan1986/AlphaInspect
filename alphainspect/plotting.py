@@ -47,6 +47,38 @@ def plot_heatmap_monthly_mean(df: pl.DataFrame, col: str,
     plot_heatmap(df_pd[col].unstack(), title=f"{col},Monthly Mean", ax=ax)
 
 
+def plot_heatmap_monthly_diff(df: pd.DataFrame, col='G9',
+                              *, ax=None) -> None:
+    """月度热力图。月底减月初差值
+
+    Parameters
+    ----------
+    df
+    col
+    ax
+
+    """
+    df = df.select([_DATE_, col,
+                    pl.col(_DATE_).dt.year().alias('year'),
+                    pl.col(_DATE_).dt.month().alias('month')
+                    ]).sort(_DATE_)
+    df = df.group_by('year', 'month').agg(pl.last(col) - pl.first(col))
+    df_pd = df.to_pandas().set_index(['year', 'month'])
+
+    plot_heatmap(df_pd[col].unstack(), title=f"{col},Monthly Last-First", ax=ax)
+
+    # out = pd.DataFrame(index=df.index)
+    # out['year'] = out.index.year
+    # out['month'] = out.index.month
+    # out['first'] = df[col]
+    # out['last'] = df[col]
+    # out = out.groupby(by=['year', 'month']).agg({'first': 'first', 'last': 'last'})
+    # # 累计收益由累乘改成了累加，这里算法也需要改动
+    # # out['cum_ret'] = out['last'] / out['first'] - 1
+    # out['cum_ret'] = out['last'] - out['first']
+    # plot_heatmap(out['cum_ret'].unstack(), title=f"{col},Monthly Return", ax=ax)
+
+
 def plot_ts(df: pl.DataFrame, col: str,
             *,
             axvlines=(), ax=None) -> Dict[str, float]:
