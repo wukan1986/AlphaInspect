@@ -35,13 +35,15 @@ def plot_quantile_portfolio(df: pl.DataFrame,
                             fwd_ret_1: str,
                             long_short: str = 'long_short',
                             *,
+                            show_long_short: bool = True,
                             axvlines=None, ax=None) -> None:
     df_pd = df.to_pandas().set_index(_DATE_)
     if long_short is None:
         ax = df_pd.plot(ax=ax, title=f'{fwd_ret_1}', cmap='coolwarm', lw=1, grid=True)
     else:
         ax = df_pd.drop(columns=long_short).plot(ax=ax, title=f'{fwd_ret_1}', cmap='coolwarm', lw=1, grid=True)
-        df_pd[long_short].plot(ax=ax, c="g", ls="--", lw=1, label='L-S', grid=True)
+        if show_long_short:
+            df_pd[long_short].plot(ax=ax, c="g", ls="--", lw=1, label='L-S', grid=True)
     ax.legend(loc='upper left')
     ax.set_xlabel('')
     for v in axvlines:

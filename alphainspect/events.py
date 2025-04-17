@@ -113,7 +113,9 @@ def plot_events_ratio(df: pl.DataFrame, fwd_ret_1: str, factor_quantile: str = _
 
 def create_events_sheet(df: pl.DataFrame,
                         condition: Optional[pl.Expr],
-                        fwd_ret_1: str, factor_quantile: str = _QUANTILE_, axvlines: Sequence[str] = ()):
+                        fwd_ret_1: str,
+                        show_long_short: bool = True,
+                        factor_quantile: str = _QUANTILE_, axvlines: Sequence[str] = ()):
     """事件分析图表
 
     Parameters
@@ -123,6 +125,8 @@ def create_events_sheet(df: pl.DataFrame,
         条件，分析前先过滤。
     fwd_ret_1:str
         用于记算累计收益的1期远期收益率
+    show_long_short:bool
+        是否显示多空对冲收益
     factor_quantile:str
         分层。可以一层，也可以多层。
     axvlines
@@ -142,7 +146,7 @@ def create_events_sheet(df: pl.DataFrame,
     plot_events_ratio(df, fwd_ret_1, factor_quantile=factor_quantile, axvlines=axvlines, ax=axes[2])
     # 画累计收益
     ret, cum, avg, std = calc_cum_return_by_quantile(df, fwd_ret_1, factor_quantile)
-    plot_quantile_portfolio(cum, fwd_ret_1, axvlines=axvlines, ax=axes[3])
+    plot_quantile_portfolio(cum, fwd_ret_1, show_long_short=show_long_short, axvlines=axvlines, ax=axes[3])
     plot_events_count(df, axvlines=axvlines, ax=axes[4])
 
     fig.tight_layout()
