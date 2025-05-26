@@ -26,8 +26,8 @@ def calc_cum_return_by_quantile(df: pl.DataFrame, fwd_ret_1: str, factor_quantil
     # std = ret.select(cs.numeric().std(ddof=0)).to_pandas().iloc[0]
     # ret = ret.to_pandas().set_index(_DATE_)
     # return ret, cum, avg, std
-    avg = ret.select(cs.numeric().mean())
-    std = ret.select(cs.numeric().std(ddof=0))
+    avg = ret.select(_DATE_, cs.numeric().mean())
+    std = ret.select(_DATE_, cs.numeric().std(ddof=0))
     return ret, cum, avg, std
 
 

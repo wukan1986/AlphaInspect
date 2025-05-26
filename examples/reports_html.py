@@ -57,14 +57,17 @@ def func(kv):
         # fig, ic_dict, hist_dict, cum, avg, std = create_2x2_sheet(df, factor, fwd_ret_1, factor_quantile=f'_fq_{factor}', axvlines=axvlines)
         # fig, ic_dict, hist_dict, cum, avg, std = create_3x2_sheet(df, factor, fwd_ret_1, factor_quantile=f'_fq_{factor}', axvlines=axvlines)
 
-        s1 = cum.to_pandas().set_index('date').iloc[-1]
-        df_last[factor] = s1
-        df_mean[factor] = avg.to_pandas().iloc[0]
-        df_std[factor] = std.to_pandas().iloc[0]
+        cum = cum.to_pandas().set_index('date').iloc[-1]
+        avg = avg.to_pandas().set_index('date').iloc[-1]
+        std = std.to_pandas().set_index('date').iloc[-1]
 
-        s2 = {'monotonic': np.sign(s1.diff()).sum()}
+        df_last[factor] = cum
+        df_mean[factor] = avg
+        df_std[factor] = std
+
+        s2 = {'monotonic': np.sign(cum.diff()).sum()}
         s3 = pd.Series(s2 | ic_dict | hist_dict)
-        tbl[factor] = pd.concat([s1, s3])
+        tbl[factor] = pd.concat([cum, s3])
         imgs.append(fig_to_img(fig))
 
     df_last = pd.DataFrame(df_last)
