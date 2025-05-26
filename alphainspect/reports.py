@@ -17,6 +17,8 @@ import os
 from pathlib import Path
 from typing import Sequence, Tuple, Any
 
+import numpy as np
+import pandas as pd
 import polars as pl
 from loguru import logger  # noqa
 from matplotlib import pyplot as plt
@@ -25,7 +27,9 @@ from alphainspect import _QUANTILE_
 from alphainspect.ic import calc_ic
 from alphainspect.plotting import plot_hist, plot_heatmap_monthly_mean, plot_ts
 from alphainspect.portfolio import calc_cum_return_by_quantile, plot_quantile_portfolio
-from alphainspect.turnover import calc_auto_correlation, calc_quantile_turnover, plot_factor_auto_correlation, plot_turnover_quantile
+from alphainspect.turnover import calc_auto_correlation, calc_quantile_turnover, plot_factor_auto_correlation, \
+    plot_turnover_quantile
+from alphainspect.utils import with_factor_quantile, with_factor_top_k
 
 html_template = """
 <html>
@@ -244,8 +248,74 @@ def create_3x2_sheet(df: pl.DataFrame,
     plot_factor_auto_correlation(df_auto_corr, axvlines=axvlines, ax=axes[2, 0])
 
     q_min, q_max = df_turnover[factor_quantile].min(), df_turnover[factor_quantile].max()
-    plot_turnover_quantile(df_turnover, quantile=q_max, factor_quantile=factor_quantile, periods=periods, axvlines=axvlines, ax=axes[2, 1])
+    plot_turnover_quantile(df_turnover, quantile=q_max, factor_quantile=factor_quantile, periods=periods,
+                           axvlines=axvlines, ax=axes[2, 1])
 
     fig.tight_layout()
 
     return fig, ic_dict, hist_dict, cum, avg, std
+
+
+def report_html(name: str, factors, df, output: str,
+                *,
+                fwd_ret_1: str = 'RETURN_OO_05', quantiles: int = None, top_k: int = None,
+                axvlines: tuple[str, str] = ('2020-01-01', '2024-01-01',)):
+    tbl = {}
+    df_mean = {}
+    df_std = {}
+    df_last = {}
+    imgs = []
+
+    for factor in factors:
+        if quantiles and quantiles > 0:
+            df = with_factor_quantile(df, factor, quantiles=quantiles, factor_quantile=f'_fq_{factor}')
+            continue
+        if top_k and top_k > 0:
+            df = with_factor_top_k(df, factor, top_k=top_k, factor_quantile=f'_fq_{factor}')
+            continue
+
+    for factor in factors:
+        fig, ic_dict, hist_dict, cum, avg, std = create_1x3_sheet(df, factor, fwd_ret_1,
+                                                                  factor_quantile=f'_fq_{factor}', axvlines=axvlines)
+
+        cum = cum.to_pandas().set_index('date').iloc[-1]
+        avg = avg.to_pandas().set_index('date').iloc[-1]
+        std = std.to_pandas().set_index('date').iloc[-1]
+
+        df_last[factor] = cum
+        df_mean[factor] = avg
+        df_std[factor] = std
+
+        s2 = {'monotonic': np.sign(cum.diff()).sum()}
+        s3 = pd.Series(s2 | ic_dict | hist_dict)
+        tbl[factor] = pd.concat([cum, s3])
+        imgs.append(fig_to_img(fig))
+
+    df_last = pd.DataFrame(df_last)
+    df_mean = pd.DataFrame(df_mean)
+    df_std = pd.DataFrame(df_std)
+
+    # 各指标柱状图
+    tbl = pd.DataFrame(tbl)
+    fig, axes = plt.subplots(3, 1, figsize=(12, 6), sharex=True)
+    ax = df_last.plot.bar(ax=axes[0])
+    ax.set_title(f'Last Total Return By Quantile')
+    ax = df_mean.plot.bar(ax=axes[1])
+    ax.set_title(f'Mean Return By Quantile')
+    ax = df_std.plot.bar(ax=axes[2])
+    ax.set_title(f'Std Return By Quantile')
+    plt.xticks(rotation=0)
+    fig.tight_layout()
+    imgs.insert(0, fig_to_img(fig))
+
+    # 表格
+    txt1 = tbl.T.to_html(float_format=lambda x: format(x, '.4f'))
+    # 图
+    txt2 = '\n'.join(imgs)
+    tpl = html_template.replace('{{body}}', f'{txt1}\n{txt2}')
+
+    output = Path(output)
+    output.mkdir(parents=True, exist_ok=True)
+
+    with open(output / f'{name}.html', "w", encoding="utf-8") as f:
+        f.write(tpl)

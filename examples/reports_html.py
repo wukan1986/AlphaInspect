@@ -18,83 +18,23 @@ sys.path.append(pwd)
 import multiprocessing
 import time
 
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
 import polars as pl
 from loguru import logger
 
-from alphainspect.reports import fig_to_img, html_template
-from alphainspect.reports import create_1x3_sheet, create_2x2_sheet, create_3x2_sheet  # noqa
+from alphainspect.reports import report_html
 from alphainspect.utils import with_factor_quantile, with_factor_top_k  # noqa
 
 INPUT1_PATH = r'data/data.parquet'
 OUTPUT_PATH = r'output'
-output = Path(OUTPUT_PATH)
-output.mkdir(parents=True, exist_ok=True)
 
 
 def func(kv):
     name, factors = kv
-    axvlines = ('2020-01-01', '2024-01-01',)
-    fwd_ret_1 = 'RETURN_OO_05'  # 计算净值用的1日收益率
-    quantiles = 5
-    top_k = 20
-
-    tbl = {}
-    df_mean = {}
-    df_std = {}
-    df_last = {}
-    imgs = []
 
     df = pl.read_parquet(INPUT1_PATH)
-    for factor in factors:
-        df = with_factor_quantile(df, factor, quantiles=quantiles, factor_quantile=f'_fq_{factor}')
-        # df = with_factor_top_k(df, factor, top_k=top_k, factor_quantile=f'_fq_{factor}')
 
-    for factor in factors:
-        fig, ic_dict, hist_dict, cum, avg, std = create_1x3_sheet(df, factor, fwd_ret_1, factor_quantile=f'_fq_{factor}', axvlines=axvlines)
-        # fig, ic_dict, hist_dict, cum, avg, std = create_2x2_sheet(df, factor, fwd_ret_1, factor_quantile=f'_fq_{factor}', axvlines=axvlines)
-        # fig, ic_dict, hist_dict, cum, avg, std = create_3x2_sheet(df, factor, fwd_ret_1, factor_quantile=f'_fq_{factor}', axvlines=axvlines)
-
-        cum = cum.to_pandas().set_index('date').iloc[-1]
-        avg = avg.to_pandas().set_index('date').iloc[-1]
-        std = std.to_pandas().set_index('date').iloc[-1]
-
-        df_last[factor] = cum
-        df_mean[factor] = avg
-        df_std[factor] = std
-
-        s2 = {'monotonic': np.sign(cum.diff()).sum()}
-        s3 = pd.Series(s2 | ic_dict | hist_dict)
-        tbl[factor] = pd.concat([cum, s3])
-        imgs.append(fig_to_img(fig))
-
-    df_last = pd.DataFrame(df_last)
-    df_mean = pd.DataFrame(df_mean)
-    df_std = pd.DataFrame(df_std)
-
-    # 各指标柱状图
-    tbl = pd.DataFrame(tbl)
-    fig, axes = plt.subplots(3, 1, figsize=(12, 6), sharex=True)
-    ax = df_last.plot.bar(ax=axes[0])
-    ax.set_title(f'Last Total Return By Quantile')
-    ax = df_mean.plot.bar(ax=axes[1])
-    ax.set_title(f'Mean Return By Quantile')
-    ax = df_std.plot.bar(ax=axes[2])
-    ax.set_title(f'Std Return By Quantile')
-    plt.xticks(rotation=0)
-    fig.tight_layout()
-    imgs.insert(0, fig_to_img(fig))
-
-    # 表格
-    txt1 = tbl.T.to_html(float_format=lambda x: format(x, '.4f'))
-    # 图
-    txt2 = '\n'.join(imgs)
-    tpl = html_template.replace('{{body}}', f'{txt1}\n{txt2}')
-
-    with open(str(output / f'{name}.html'), "w", encoding="utf-8") as f:
-        f.write(tpl)
+    report_html(name, factors, df, OUTPUT_PATH,
+                fwd_ret_1='RETURN_OO_05', quantiles=5, top_k=0, axvlines=('2020-01-01', '2024-01-01',))
 
     return 0
 
@@ -111,4 +51,4 @@ if __name__ == '__main__':
         print(list(pool.map(func, factors_kv.items())))
     logger.info('结束')
     logger.info(f'耗时：{time.perf_counter() - t0:.2f}s')
-    os.system(f'explorer.exe "{output}"')
+    os.system(f'explorer.exe "{OUTPUT_PATH}"')
