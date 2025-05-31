@@ -99,6 +99,29 @@ def plot_metric_errorbar(models, metric: str, ax=None):
     ax.legend()
 
 
+def plot_coef_box(models, ax=None):
+    """线性模型系数"""
+    importance_df = []
+    for i, model in enumerate(models):
+        importance = model.coef_.flatten()
+        feature_name = model.feature_names_in_
+        importance_df.append(dict(zip(feature_name, importance)))
+    importance_df = pd.DataFrame(importance_df)
+
+    # sort features by mean
+    importance_mean = importance_df.mean(axis=0).sort_values(ascending=False)
+    sorted_indices = importance_mean[importance_mean.abs() > 0.000001].index
+    sorted_importance_df = importance_df.loc[:, sorted_indices]
+
+    ax.grid()
+    # ax.set_xscale('log')
+    ax.set_ylabel('Features')
+    ax.set_xlabel('Feature coef')
+    sns.boxplot(data=sorted_importance_df,
+                orient='h',
+                ax=ax)
+
+
 def tree_to_html(
         booster,
         tree_index: int = 0,
