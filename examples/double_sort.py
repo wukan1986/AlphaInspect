@@ -20,6 +20,7 @@ import polars as pl
 
 from alphainspect.utils import with_factor_quantile
 from alphainspect.plotting import create_describe2_sheet
+from alphainspect import _DATE_
 
 df = pl.read_parquet('data/data.parquet')
 # %%
@@ -29,13 +30,13 @@ fwd_ret_1 = "RETURN_OO_05"  # 因子对标的收益率
 
 # %%
 # 独立双重排序
-df = with_factor_quantile(df, factor1, quantiles=3, factor_quantile='_fq_1')
-df = with_factor_quantile(df, factor2, quantiles=5, factor_quantile='_fq_2')
+df = with_factor_quantile(df, factor1, quantiles=3, by=[_DATE_], factor_quantile='_fq_1')
+df = with_factor_quantile(df, factor2, quantiles=5, by=[_DATE_], factor_quantile='_fq_2')
 create_describe2_sheet(df, fwd_ret_1, ['_fq_1', '_fq_2'])
 
 # 条件双重排序
-df = with_factor_quantile(df, factor1, quantiles=3, factor_quantile='_fq_1')
-df = with_factor_quantile(df, factor2, quantiles=5, factor_quantile='_fq_2', group_name='_fq_1')
+df = with_factor_quantile(df, factor1, quantiles=3, by=[_DATE_], factor_quantile='_fq_1')
+df = with_factor_quantile(df, factor2, quantiles=5, by=[_DATE_, '_fq_1'], factor_quantile='_fq_2')
 create_describe2_sheet(df, fwd_ret_1, ['_fq_1', '_fq_2'])
 
 plt.show()

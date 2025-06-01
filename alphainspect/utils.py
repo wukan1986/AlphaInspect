@@ -1,4 +1,5 @@
-from typing import Sequence, Optional
+import re
+from typing import Sequence, Optional, List
 
 import numpy as np
 import pandas as pd
@@ -10,7 +11,7 @@ from alphainspect import _QUANTILE_, _DATE_
 from alphainspect._nb import _sub_portfolio_returns
 
 
-def with_factor_quantile(df: pl.DataFrame, factor: str, quantiles: int = 10, group_name: Optional[str] = None, factor_quantile: str = _QUANTILE_) -> pl.DataFrame:
+def with_factor_quantile(df: pl.DataFrame, factor: str, quantiles: int = 10, by: List[str] = None, factor_quantile: str = _QUANTILE_) -> pl.DataFrame:
     """添加因子分位数信息
 
     Parameters
@@ -20,23 +21,18 @@ def with_factor_quantile(df: pl.DataFrame, factor: str, quantiles: int = 10, gro
         因子名
     quantiles
         分层数
-    group_name
-        条件分组
+    by
+        分组
     factor_quantile
         分组名
 
     """
-    by = [_DATE_]
-    if group_name is not None:
-        if isinstance(group_name, str):
-            group_name = [group_name]
-        by.extend(group_name)
-
-    df = df.with_columns(cs_qcut(pl.col(factor).fill_nan(None), quantiles).over(*by).alias(factor_quantile))
-    return df
+    if by is None:
+        by = [_DATE_]
+    return df.with_columns(cs_qcut(pl.col(factor).fill_nan(None), quantiles).over(*by).alias(factor_quantile))
 
 
-def with_factor_top_k(df: pl.DataFrame, factor: str, top_k: int = 10, group_name: Optional[str] = None, factor_quantile: str = _QUANTILE_) -> pl.DataFrame:
+def with_factor_top_k(df: pl.DataFrame, factor: str, top_k: int = 10, by: List[str] = None, factor_quantile: str = _QUANTILE_) -> pl.DataFrame:
     """前K后K的分层方法。一般用于截面股票数不多无法分位数分层的情况。
 
     Parameters
@@ -44,7 +40,7 @@ def with_factor_top_k(df: pl.DataFrame, factor: str, top_k: int = 10, group_name
     df
     factor
     top_k
-    group_name
+    by
     factor_quantile
 
     Returns
@@ -56,37 +52,11 @@ def with_factor_top_k(df: pl.DataFrame, factor: str, top_k: int = 10, group_name
         - 遇到top_k>数量/2时，即在做多组又在做空组会划分到对冲组
 
     """
-    by = [_DATE_]
-    if group_name is not None:
-        if isinstance(group_name, str):
-            group_name = [group_name]
-        by.extend(group_name)
+    if by is None:
+        by = [_DATE_]
 
     df = df.with_columns(cs_top_bottom(pl.col(factor).fill_nan(None), top_k).over(*by).alias(factor_quantile))
     df = df.with_columns(pl.col(factor_quantile) + 1)
-    return df
-
-
-def with_industry(df: pl.DataFrame, industry_name: str):
-    """添加行业列
-
-    Parameters
-    ----------
-    df
-    industry_name
-        行业名称。哑元变量扩充
-
-    Notes
-    -----
-    `to_dummies(drop_first=True)`丢弃哪个字段是随机的，非常不友好，只能在行业中性化时动态修改代码
-
-    """
-    df = df.with_columns([
-        # 行业处理，由浮点改成整数
-        pl.col(industry_name).fill_nan(None).fill_null(0).cast(pl.UInt32),
-    ])
-
-    df = df.with_columns(df.to_dummies(industry_name, drop_first=True))
     return df
 
 

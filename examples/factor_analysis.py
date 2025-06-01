@@ -27,6 +27,7 @@ import polars as pl
 from alphainspect.reports import create_1x3_sheet, create_3x2_sheet
 from alphainspect.plotting import create_describe1_sheet
 from alphainspect.utils import with_factor_quantile, with_factor_top_k  # noqa
+from alphainspect import _DATE_
 
 # %% 加载数据
 df = pl.read_parquet('data/data.parquet')
@@ -35,8 +36,8 @@ factor = 'SMA_010'  # 考察因子
 forward_returns = ['RETURN_CC_01', 'RETURN_OO_01', 'RETURN_OO_02', 'RETURN_OO_05']  # 同一因子，不同持有期对比
 
 # %% 因子值分层
-df = with_factor_quantile(df, factor, quantiles=10, factor_quantile='_fq_1')
-# df = with_factor_top_k(df, factor, top_k=20, factor_quantile='_fq_1')
+df = with_factor_quantile(df, factor, quantiles=10, by=[_DATE_], factor_quantile='_fq_1')
+# df = with_factor_top_k(df, factor, top_k=20, by=[_DATE_], factor_quantile='_fq_1')
 
 # %% 分组后因子值的描述性统计
 create_describe1_sheet(df, [factor], factor_quantile='_fq_1')

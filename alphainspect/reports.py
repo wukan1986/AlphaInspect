@@ -23,7 +23,7 @@ import polars as pl
 from loguru import logger  # noqa
 from matplotlib import pyplot as plt
 
-from alphainspect import _QUANTILE_
+from alphainspect import _QUANTILE_, _DATE_
 from alphainspect.ic import calc_ic
 from alphainspect.plotting import plot_hist, plot_heatmap_monthly_mean, plot_ts
 from alphainspect.portfolio import calc_cum_return_by_quantile, plot_quantile_portfolio
@@ -268,10 +268,10 @@ def report_html(name: str, factors, df, output: str,
 
     for factor in factors:
         if quantiles and quantiles > 0:
-            df = with_factor_quantile(df, factor, quantiles=quantiles, factor_quantile=f'_fq_{factor}')
+            df = with_factor_quantile(df, factor, quantiles=quantiles, by=[_DATE_], factor_quantile=f'_fq_{factor}')
             continue
         if top_k and top_k > 0:
-            df = with_factor_top_k(df, factor, top_k=top_k, factor_quantile=f'_fq_{factor}')
+            df = with_factor_top_k(df, factor, top_k=top_k, by=[_DATE_], factor_quantile=f'_fq_{factor}')
             continue
 
     for factor in factors:
