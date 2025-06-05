@@ -14,6 +14,7 @@
 import base64
 import io
 import os
+from datetime import datetime
 from pathlib import Path
 from typing import Sequence, Tuple, Any
 
@@ -312,7 +313,7 @@ def report_html(name: str, factors, df, output: str,
     txt1 = tbl.T.to_html(float_format=lambda x: format(x, '.4f'))
     # 图
     txt2 = '\n'.join(imgs)
-    tpl = html_template.replace('{{body}}', f'{txt1}\n{txt2}')
+    tpl = html_template.replace('{{body}}', f'{datetime.now()}\n{txt1}\n{txt2}')
 
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
