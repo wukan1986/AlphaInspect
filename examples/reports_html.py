@@ -27,6 +27,13 @@ from alphainspect.utils import with_factor_quantile, with_factor_top_k  # noqa
 INPUT1_PATH = r'data/data.parquet'
 OUTPUT_PATH = r'output'
 
+# 多添加了一个process
+logger.remove()
+logger.add(sys.stderr,
+           format="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level:<8}</level> | {process.name} | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+           level="INFO",
+           colorize=True)
+
 
 def func(kv):
     name, factors = kv
