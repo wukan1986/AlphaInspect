@@ -34,7 +34,7 @@ def func(kv):
     df = pl.read_parquet(INPUT1_PATH)
 
     report_html(name, factors, df, OUTPUT_PATH,
-                fwd_ret_1='RETURN_OO_05', quantiles=5, top_k=0, axvlines=('2020-01-01', '2024-01-01',))
+                fwd_ret_1='RETURN_OO_05', quantiles=9, top_k=0, axvlines=('2020-01-01', '2024-01-01',))
 
     return 0
 

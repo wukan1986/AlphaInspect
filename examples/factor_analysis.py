@@ -36,7 +36,7 @@ factor = 'SMA_010'  # 考察因子
 forward_returns = ['RETURN_CC_01', 'RETURN_OO_01', 'RETURN_OO_02', 'RETURN_OO_05']  # 同一因子，不同持有期对比
 
 # %% 因子值分层
-df = with_factor_quantile(df, factor, quantiles=10, by=[_DATE_], factor_quantile='_fq_1')
+df = with_factor_quantile(df, factor, quantiles=9, by=[_DATE_], factor_quantile='_fq_1')
 # df = with_factor_top_k(df, factor, top_k=20, by=[_DATE_], factor_quantile='_fq_1')
 
 # %% 分组后因子值的描述性统计
