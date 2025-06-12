@@ -162,7 +162,7 @@ def plot_hist(df: pl.DataFrame, col: str,
     ax.set_title(title)
     ax.set_xlabel('')
 
-    return {'mean': mean, 'std': std, 'skew': skew, 'kurt': kurt}
+    return {'std': std, 'skew': skew, 'kurt': kurt, 'mean_': mean}
 
 
 def plot_qq(df: pl.DataFrame, col: str,
