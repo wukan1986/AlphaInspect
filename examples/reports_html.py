@@ -15,8 +15,8 @@ pwd = str(Path(__file__).parents[1])
 os.chdir(pwd)
 sys.path.append(pwd)
 # ===============
-import multiprocessing
 import time
+from multiprocessing import get_context
 
 import polars as pl
 from loguru import logger
@@ -54,7 +54,7 @@ if __name__ == '__main__':
     t0 = time.perf_counter()
     logger.info('开始')
     # 没必要设置太大，因为部分计算使用的polars多线程，会将CPU跑满
-    with multiprocessing.Pool(2) as pool:
+    with get_context("spawn").Pool(2) as pool:
         print(list(pool.map(func, factors_kv.items())))
     logger.info('结束')
     logger.info(f'耗时：{time.perf_counter() - t0:.2f}s')
