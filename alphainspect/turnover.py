@@ -81,7 +81,7 @@ def calc_quantile_turnover(df: pl.DataFrame,
     # 集合操作在pandas上比较方便，polars中不支持
     df_pd: pd.DataFrame = df.group_by(_DATE_, factor_quantile).agg(_ASSET_).sort(_DATE_).to_pandas()
     df_pd[_ASSET_] = df_pd[_ASSET_].apply(_list_to_set)
-    return df_pd.groupby(by=factor_quantile).apply(_func_ts)
+    return df_pd.groupby(by=factor_quantile)[df_pd.columns].apply(_func_ts)
 
 
 def plot_factor_auto_correlation(df: pl.DataFrame,

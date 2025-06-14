@@ -14,9 +14,8 @@ classifiers = [
 ]
 dependencies = [
     'pandas',
-    'polars',
+    'polars_ta',
     'matplotlib',
-    'numba',
     'seaborn',
     'statsmodels',
     'ipykernel',
