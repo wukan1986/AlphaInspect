@@ -76,6 +76,10 @@ pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --upgrade alphainspect  
 ```python
 FWD_RET_LONG = (卖出平仓价 / 买入开仓价) ** (1 / D) - 1
 FWD_RET_SHORT = (2 - 买入平仓价 / 卖出开仓价) ** (1 / D) - 1
+
+FWD_RET = (OPEN[-1] / CLOSE) ** (1 / 1) - 1  # 收盘前买入，第二天开盘卖出
+FWD_RET = (OPEN[-1] / HIGH[1]) ** (1 / 1) - 1  # 突破昨高买入，第二天开盘卖出
+FWD_RET = (OPEN[-1] / max_(OPEN, CLOSE)[1]) ** (1 / 1) - 1  # 突破昨实体上沿买入，第二天开盘卖出
 ```
 
 ## 二次开发

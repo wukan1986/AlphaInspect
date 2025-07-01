@@ -118,7 +118,10 @@ def plot_quantile_portfolio(df: pl.DataFrame,
                             *,
                             show_long_short: bool = True,
                             axvlines=None, ax=None) -> None:
-    logger.info("{},{}", fwd_ret_1, points(df))
+    try:
+        logger.info("{},{}", fwd_ret_1, points(df))
+    except Exception:
+        logger.info("{}", df.columns)
     df_pd = df.to_pandas().set_index(_DATE_)
     if long_short is None:
         ax = df_pd.plot(ax=ax, title=f'{fwd_ret_1}', cmap='coolwarm', lw=1, grid=True)
