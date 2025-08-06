@@ -9,3 +9,4 @@ nbconvert
 loguru
 scipy
 scikit-learn
+pyarrow

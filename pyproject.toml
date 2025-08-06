@@ -23,6 +23,7 @@ dependencies = [
     'loguru',
     'scipy',
     'scikit-learn',
+    'pyarrow',
 ]
 dynamic = ["version"]
 
