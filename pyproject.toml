@@ -17,12 +17,10 @@ dependencies = [
     'polars_ta',
     'matplotlib',
     'seaborn',
-    'statsmodels',
     'ipykernel',
     'nbconvert',
     'loguru',
     'scipy',
-    'scikit-learn',
     'pyarrow',
 ]
 dynamic = ["version"]

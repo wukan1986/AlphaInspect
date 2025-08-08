@@ -6,7 +6,6 @@ import polars as pl
 from loguru import logger
 from matplotlib import pyplot as plt
 from polars import Expr
-from sklearn.feature_selection import mutual_info_regression
 
 from alphainspect import _DATE_
 from alphainspect.calc import calc_mean, calc_ir, calc_corr
@@ -21,6 +20,7 @@ def rank_ic(a: str, b: str) -> Expr:
 
 def mutual_info(a: str, b: str) -> Expr:
     """互信息"""
+    from sklearn.feature_selection import mutual_info_regression
 
     def mutual_info_func(xx) -> float:
         yx = np.vstack(xx).T

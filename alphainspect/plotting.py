@@ -7,8 +7,6 @@ import polars as pl
 import seaborn as sns
 from loguru import logger
 from matplotlib import pyplot as plt
-from scipy import stats
-from statsmodels import api as sm
 
 from alphainspect import _QUANTILE_, _DATE_
 
@@ -89,6 +87,8 @@ def plot_ts(df: pl.DataFrame, col: str,
     >>> plot_ts(df_pd, 'RETURN_OO_1')
 
     """
+    from scipy import stats
+
     df = df.select([_DATE_, col])
 
     df = df.select([
@@ -174,6 +174,8 @@ def plot_qq(df: pl.DataFrame, col: str,
     --------
     >>> plot_qq(df, 'RETURN_OO_1')
     """
+    from statsmodels import api as sm
+
     a = df[col].to_pandas().replace([-np.inf, np.inf], np.nan).dropna()
 
     sm.qqplot(a, fit=True, line='45', ax=ax)
