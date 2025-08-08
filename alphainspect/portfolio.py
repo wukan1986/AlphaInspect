@@ -104,7 +104,7 @@ def calc_cum_return_by_quantile(df: pl.DataFrame, fwd_ret_1: str, factor_quantil
     """
     x = df.filter(pl.col(factor_quantile) >= 0).group_by(factor_quantile, _DATE_).agg(pl.mean(fwd_ret_1))
     y = x.pivot(index=_DATE_, columns=factor_quantile, values=fwd_ret_1, aggregate_function='first', sort_columns=True).sort(_DATE_)
-    ret = y.with_columns(cs.numeric().fill_nan(None))
+    ret = y.with_columns(cs.numeric().fill_nan(None).fill_null(0.0))
     cum = ret.with_columns(long_short=cs.by_index(-1).as_expr() - cs.by_index(1).as_expr()).with_columns(cs.numeric().fill_null(0).cum_sum())
     avg = ret.select(_DATE_, cs.numeric().mean())
     std = ret.select(_DATE_, cs.numeric().std(ddof=0))
