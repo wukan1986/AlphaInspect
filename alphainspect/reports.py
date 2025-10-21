@@ -276,6 +276,7 @@ def report_html(name: str, factors, df, output: str,
             continue
 
     for factor in factors:
+        logger.info("=" * 60)
         fig, ic_dict, hist_dict, cum, avg, std = create_1x3_sheet(df, factor, fwd_ret_1,
                                                                   factor_quantile=f'_fq_{factor}', axvlines=axvlines)
 
