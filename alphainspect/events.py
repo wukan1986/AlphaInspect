@@ -1,12 +1,12 @@
-from functools import lru_cache
-from typing import Sequence, List, Optional, Union
+from typing import Sequence, Optional, Union
 
 import numpy as np
 import pandas as pd
 import polars as pl
 from matplotlib import pyplot as plt
+from numba import jit
 from numpy.lib.stride_tricks import sliding_window_view
-from polars._typing import SchemaDict
+from polars_ta.utils.numba_ import batches_i1_o2
 
 from alphainspect import _QUANTILE_, _DATE_, _ASSET_
 from alphainspect.portfolio import calc_cum_return_by_quantile, plot_quantile_portfolio
@@ -16,16 +16,22 @@ _REG_AROUND_ = r'^[+-]\d+$'
 _COL_AROUND_ = pl.col(_REG_AROUND_)
 
 
-@lru_cache
-def make_around_columns_list(periods_before: int = 3, periods_after: int = 15) -> List[str]:
-    """生成表格区表头"""
-    return [f'{i:+02d}' for i in range(-periods_before, periods_after + 1)]
+@jit(nopython=True, nogil=True, cache=True)
+def _func_around_price(t0: np.ndarray, periods_before: int, periods_after: int, normalize: bool = True):
+    n = t0.shape[0]
+    # 准备数据，前后要留空间
+    a = np.empty(n + periods_before + periods_after, dtype=np.float32)
+    a[:periods_before] = np.nan
+    a[-periods_after - 1:] = np.nan
+    a[periods_before:periods_before + n] = t0
 
-
-@lru_cache
-def make_around_columns_dict(periods_before: int = 3, periods_after: int = 15) -> SchemaDict:
-    """生成表格区表头"""
-    return {f'{i:+02d}': pl.Float32 for i in range(-periods_before, periods_after + 1)}
+    # 滑动窗口
+    b = sliding_window_view(a, periods_before + periods_after + 1)
+    # 将T+0置为1
+    if normalize:
+        return b / b[:, periods_before:periods_before + 1]
+    else:
+        return b
 
 
 def with_around_price(df: Union[pl.DataFrame, pl.LazyFrame], price: str, periods_before: int = 5,
@@ -42,36 +48,16 @@ def with_around_price(df: Union[pl.DataFrame, pl.LazyFrame], price: str, periods
 
     """
 
-    def _func_ts(df: pl.DataFrame, normalize: bool = True):
-        # 一定要排序
-        df = df.sort(_DATE_)
-        n = len(df)
+    def _around_price(x: pl.Expr) -> pl.Expr:
+        dtype = pl.Struct([pl.Field(f"column_{i}", pl.Float32) for i in range(periods_before + periods_after + 1)])
+        return x.map_batches(
+            lambda x1: batches_i1_o2(x1.to_numpy(), _func_around_price, periods_before, periods_after),
+            return_dtype=dtype
+        ).struct.rename_fields([f'{i:+02d}' for i in range(-periods_before, periods_after + 1)])
 
-        t0 = df[price].to_numpy()
-        # 准备数据，前后要留空间
-        a = np.empty(n + periods_before + periods_after, dtype=t0.dtype)
-        a[:periods_before] = np.nan
-        a[-periods_after - 1:] = np.nan
-        a[periods_before:periods_before + n] = t0
-
-        # 滑动窗口
-        b = sliding_window_view(a, periods_before + periods_after + 1)
-        # 将T+0置为1
-        if normalize:
-            b = b / b[:, [periods_before]]
-        # numpy转polars
-        c = pl.from_numpy(b, schema=make_around_columns_list(periods_before, periods_after))
-        return df.with_columns(c)
-
-    if isinstance(df, pl.LazyFrame):
-        return df.group_by(_ASSET_).map_groups(
-            _func_ts,
-            schema=make_around_columns_dict(periods_before, periods_after)
-        ).with_columns(_COL_AROUND_.fill_nan(None))
-    else:
-        return df.group_by(_ASSET_).map_groups(
-            _func_ts
-        ).with_columns(_COL_AROUND_.fill_nan(None))
+    return df.with_columns(
+        _AROUND_=_around_price(pl.col(price)).over(_ASSET_, order_by=_DATE_),
+    ).unnest('_AROUND_')
 
 
 def plot_events_errorbar(df: pl.DataFrame, factor_quantile: str = _QUANTILE_, ax=None) -> None:
