@@ -1,11 +1,12 @@
 from functools import lru_cache
-from typing import Sequence, List, Optional
+from typing import Sequence, List, Optional, Union
 
 import numpy as np
 import pandas as pd
 import polars as pl
 from matplotlib import pyplot as plt
 from numpy.lib.stride_tricks import sliding_window_view
+from polars._typing import SchemaDict
 
 from alphainspect import _QUANTILE_, _DATE_, _ASSET_
 from alphainspect.portfolio import calc_cum_return_by_quantile, plot_quantile_portfolio
@@ -16,12 +17,19 @@ _COL_AROUND_ = pl.col(_REG_AROUND_)
 
 
 @lru_cache
-def make_around_columns(periods_before: int = 3, periods_after: int = 15) -> List[str]:
+def make_around_columns_list(periods_before: int = 3, periods_after: int = 15) -> List[str]:
     """生成表格区表头"""
     return [f'{i:+02d}' for i in range(-periods_before, periods_after + 1)]
 
 
-def with_around_price(df: pl.DataFrame, price: str, periods_before: int = 5, periods_after: int = 15) -> pl.DataFrame:
+@lru_cache
+def make_around_columns_dict(periods_before: int = 3, periods_after: int = 15) -> SchemaDict:
+    """生成表格区表头"""
+    return {f'{i:+02d}': pl.Float32 for i in range(-periods_before, periods_after + 1)}
+
+
+def with_around_price(df: Union[pl.DataFrame, pl.LazyFrame], price: str, periods_before: int = 5,
+                      periods_after: int = 15) -> Union[pl.DataFrame, pl.LazyFrame]:
     """添加前后复权价
 
     Parameters
@@ -34,8 +42,7 @@ def with_around_price(df: pl.DataFrame, price: str, periods_before: int = 5, per
 
     """
 
-    def _func_ts(df: pl.DataFrame,
-                 normalize: bool = True):
+    def _func_ts(df: pl.DataFrame, normalize: bool = True):
         # 一定要排序
         df = df.sort(_DATE_)
         n = len(df)
@@ -53,10 +60,18 @@ def with_around_price(df: pl.DataFrame, price: str, periods_before: int = 5, per
         if normalize:
             b = b / b[:, [periods_before]]
         # numpy转polars
-        c = pl.from_numpy(b, schema=make_around_columns(periods_before, periods_after))
+        c = pl.from_numpy(b, schema=make_around_columns_list(periods_before, periods_after))
         return df.with_columns(c)
 
-    return df.group_by(_ASSET_).map_groups(_func_ts).with_columns(_COL_AROUND_.fill_nan(None))
+    if isinstance(df, pl.LazyFrame):
+        return df.group_by(_ASSET_).map_groups(
+            _func_ts,
+            schema=make_around_columns_dict(periods_before, periods_after)
+        ).with_columns(_COL_AROUND_.fill_nan(None))
+    else:
+        return df.group_by(_ASSET_).map_groups(
+            _func_ts
+        ).with_columns(_COL_AROUND_.fill_nan(None))
 
 
 def plot_events_errorbar(df: pl.DataFrame, factor_quantile: str = _QUANTILE_, ax=None) -> None:
@@ -101,7 +116,8 @@ def plot_events_count(df: pl.DataFrame, axvlines: Sequence[str] = (), ax=None) -
         ax.axvline(x=v, c="b", ls="--", lw=1)
 
 
-def plot_events_ratio(df: pl.DataFrame, fwd_ret_1: str, factor_quantile: str = _QUANTILE_, axvlines: Sequence[str] = (), ax=None) -> None:
+def plot_events_ratio(df: pl.DataFrame, fwd_ret_1: str, factor_quantile: str = _QUANTILE_, axvlines: Sequence[str] = (),
+                      ax=None) -> None:
     """事件胜率"""
     df = df.group_by(_DATE_, factor_quantile).agg((pl.col(fwd_ret_1) > 0).mean()).sort(_DATE_)
     df_pd = df.to_pandas().set_index([_DATE_, factor_quantile])[fwd_ret_1].unstack()
