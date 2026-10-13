@@ -15,7 +15,7 @@ from alphainspect.utils import select_by_suffix, index_split_unstack
 
 def rank_ic(a: str, b: str) -> Expr:
     """RankIC"""
-    return pl.corr(a, b, method='spearman', ddof=0, propagate_nans=False)
+    return pl.corr(a, b, method='spearman', propagate_nans=False)
 
 
 def mutual_info(a: str, b: str) -> Expr:

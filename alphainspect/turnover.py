@@ -25,7 +25,7 @@ def auto_corr(col: str, period: int) -> Expr:
         自相关周期
 
     """
-    return pl.corr(pl.col(col), pl.col(col).shift(period), method='spearman', ddof=0, propagate_nans=False)
+    return pl.corr(pl.col(col), pl.col(col).shift(period), method='spearman', propagate_nans=False)
 
 
 def calc_auto_correlation(df: pl.DataFrame,
